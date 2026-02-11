@@ -7,6 +7,21 @@ let timer=0;
 let timerInterval=null;
 let status="spiel";
 
+/* ---------- SIGNALTON ---------- */
+function signalTonAbspielen(){
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(1000, ctx.currentTime);
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 0.5);
+}
+
 /* ---------- SPEICHERN ---------- */
 function speichern(){
     const daten={modus,teamA,teamB,aktuellesSpiel,spiele,timer,status};
@@ -24,8 +39,27 @@ function laden(){
     spiele=daten.spiele;
     timer=daten.timer;
     status=daten.status;
-
     return true;
+}
+
+/* ---------- PAARUNGEN ---------- */
+function getPaarungen(){
+
+    if(modus==="single"){
+        return [{a:teamA.toUpperCase(),b:teamB.toUpperCase()}];
+    }
+
+    if(aktuellesSpiel===2){
+        return [
+            {a:`${teamA.toUpperCase()}1`,b:`${teamB.toUpperCase()}2`},
+            {a:`${teamA.toUpperCase()}2`,b:`${teamB.toUpperCase()}1`}
+        ];
+    }
+
+    return [
+        {a:`${teamA.toUpperCase()}1`,b:`${teamB.toUpperCase()}1`},
+        {a:`${teamA.toUpperCase()}2`,b:`${teamB.toUpperCase()}2`}
+    ];
 }
 
 /* ---------- SETUP ---------- */
@@ -75,15 +109,17 @@ return{pa,pb};
 function ladeSpiel(){
 
 let zwischen=berechneZwischenstand();
+let paarungen=getPaarungen();
 
-let tabs=`<div>
-<button onclick="springeZuSpiel(1)">Spiel 1</button>
-<button onclick="springeZuSpiel(2)">Spiel 2</button>
-<button onclick="springeZuSpiel(3)">Spiel 3</button>
+let hinweis="";
+if(aktuellesSpiel===3){
+hinweis=`<div style="background:#ffeeba;padding:10px;margin:10px 0;font-weight:bold;">
+Hinweis: Bitte 2–4 Spieler zwischen A1/A2 und B1/B2 tauschen!
 </div>`;
+}
 
 let html=`<h1>Spiel ${aktuellesSpiel}</h1>
-${tabs}
+${hinweis}
 <div style="background:#e3f2fd;padding:10px;margin:10px 0;font-weight:bold;">
 Zwischenstand: ${teamA.toUpperCase()} ${zwischen.pa} : ${zwischen.pb} ${teamB.toUpperCase()}
 </div>
@@ -93,14 +129,32 @@ Zwischenstand: ${teamA.toUpperCase()} ${zwischen.pa} : ${zwischen.pb} ${teamB.to
 <button onclick="resetTimer()">Reset</button><hr>`;
 
 spiele[aktuellesSpiel-1].felder.forEach((f,i)=>{
+
 html+=`
+<div style="margin-bottom:25px;padding:15px;border:1px solid #ccc;border-radius:12px;">
 <h3>Feld ${i+1}</h3>
-<h2>${teamA}</h2>
-<button onclick="minusA(${i})">-</button> ${f.a}
-<button onclick="plusA(${i})">+</button>
-<h2>${teamB}</h2>
-<button onclick="minusB(${i})">-</button> ${f.b}
-<button onclick="plusB(${i})">+</button><hr>`;
+
+<div style="font-size:24px;font-weight:bold;margin-bottom:15px;text-align:center;">
+${paarungen[i].a} --- ${f.a} | ${f.b} --- ${paarungen[i].b}
+</div>
+
+<div style="display:flex;justify-content:space-between;">
+    <div style="text-align:center;">
+        <button style="background:#2e7d32;color:white;font-size:28px;padding:15px;margin:10px;"
+        onclick="plusA(${i})">+</button>
+        <button style="background:#c62828;color:white;font-size:28px;padding:15px;margin:10px;"
+        onclick="minusA(${i})">-</button>
+    </div>
+
+    <div style="text-align:center;">
+        <button style="background:#2e7d32;color:white;font-size:28px;padding:15px;margin:10px;"
+        onclick="plusB(${i})">+</button>
+        <button style="background:#c62828;color:white;font-size:28px;padding:15px;margin:10px;"
+        onclick="minusB(${i})">-</button>
+    </div>
+</div>
+</div>
+`;
 });
 
 html+=`
@@ -118,16 +172,43 @@ function minusB(f){if(spiele[aktuellesSpiel-1].felder[f].b>0)spiele[aktuellesSpi
 
 /* ---------- TIMER ---------- */
 function formatZeit(s){return`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
-function startTimer(){if(timerInterval)return;timerInterval=setInterval(()=>{timer++;document.getElementById("zeit").innerText=formatZeit(timer);speichern();if(timer>=1200){clearInterval(timerInterval);alert("20 Minuten erreicht!");}},1000);}
+
+function startTimer(){
+if(timerInterval) return;
+timerInterval=setInterval(()=>{
+timer++;
+document.getElementById("zeit").innerText=formatZeit(timer);
+speichern();
+
+if(timer>=10){ // TESTZEIT
+clearInterval(timerInterval);
+timerInterval=null;
+signalTonAbspielen();
+alert("Zeit erreicht!");
+}
+},1000);
+}
+
 function pauseTimer(){clearInterval(timerInterval);timerInterval=null;speichern();}
 function resetTimer(){clearInterval(timerInterval);timerInterval=null;timer=0;speichern();ladeSpiel();}
 
 /* ---------- NAV ---------- */
-function springeZuSpiel(n){aktuellesSpiel=n;speichern();ladeSpiel();}
 function vorherigesSpiel(){if(aktuellesSpiel>1){aktuellesSpiel--;ladeSpiel();}else zeigeTeamEingabe();}
-function naechstesSpiel(){timer=0;clearInterval(timerInterval);if(aktuellesSpiel<3){aktuellesSpiel++;speichern();ladeSpiel();}else zeigeErgebnis();}
+function naechstesSpiel(){
+timer=0;
+clearInterval(timerInterval);
+timerInterval=null;
 
-/* ---------- PDF EXPORT ---------- */
+if(aktuellesSpiel<3){
+aktuellesSpiel++;
+speichern();
+ladeSpiel();
+}else{
+zeigeErgebnis();
+}
+}
+
+/* ---------- PDF ---------- */
 async function exportierePDF(){
 const { jsPDF } = window.jspdf;
 const canvas = await html2canvas(document.body);
@@ -150,7 +231,6 @@ document.body.innerHTML=`
 <h2>${teamA}: ${pa}</h2>
 <h2>${teamB}: ${pb}</h2>
 <button onclick="exportierePDF()">PDF speichern</button>
-<button onclick="springeZuSpiel(3)">Zurück zu Spiel 3</button>
 <button onclick="neuerSpieltag()">Neuer Spieltag</button>`;
 }
 
