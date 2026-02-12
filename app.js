@@ -57,6 +57,29 @@ document.body.innerHTML=`
 <button onclick="zeigeModusAuswahl()">Zurück</button>
 <button onclick="startSpieltag()">Start</button>`;
 }
+function getPaarungen(){
+
+    // Singlemodus
+    if(modus==="single"){
+        return [
+            {a: teamA, b: teamB}
+        ];
+    }
+
+    // Spiel 2 gekreuzt
+    if(aktuellesSpiel === 2){
+        return [
+            {a: teamA+"-1", b: teamB+"-2"},
+            {a: teamA+"-2", b: teamB+"-1"}
+        ];
+    }
+
+    // Spiel 1 und 3
+    return [
+        {a: teamA+"-1", b: teamB+"-1"},
+        {a: teamA+"-2", b: teamB+"-2"}
+    ];
+}
 
 function startSpieltag(){
 teamA=document.getElementById("teamA").value;
@@ -69,7 +92,13 @@ for(let i=0;i<3;i++){
 spiele.push(modus==="single"?{felder:[{a:0,b:0}]}:{felder:[{a:0,b:0},{a:0,b:0}]});
 }
 speichern();
-ladeSpiel();
+ladeSpiel();let hinweis="";
+if(aktuellesSpiel===3 && modus==="twin"){
+hinweis=`
+<div style="background:#ffeeba;padding:10px;font-weight:bold;">
+Hinweis: Vor Spielbeginn 2-4 Spieler zwischen A1/A2 und B1/B2 tauschen!
+</div>`;
+}
 }
 
 /* ZWISCHENSTAND */
@@ -98,10 +127,13 @@ let html=`
 Zwischenstand: ${teamA} ${z.pa} : ${z.pb} ${teamB}
 </div>
 
-<h2 id="zeit">${timer}</h2>
-<button onclick="startTimer()">Start</button>
-<button onclick="pauseTimer()">Pause</button>
-<button onclick="resetTimer()">Reset</button>
+<div style="display:flex;gap:10px;justify-content:center;margin-bottom:10px;">
+<button style="padding:6px 12px;" onclick="startTimer()">Start</button>
+<button style="padding:6px 12px;" onclick="pauseTimer()">Pause</button>
+<button style="padding:6px 12px;" onclick="resetTimer()">Reset</button>
+</div>
+
+<h2 id="zeit" style="text-align:center;">${timer}</h2>
 `;
 
 spiele[aktuellesSpiel-1].felder.forEach((f,i)=>{
@@ -141,26 +173,39 @@ function minusB(i){if(spiele[aktuellesSpiel-1].felder[i].b>0)spiele[aktuellesSpi
 
 /* TIMER */
 function startTimer(){
-gestarteteSpiele[aktuellesSpiel-1]=true;
-if(timerInterval) return;
-timerInterval=setInterval(()=>{
-timer++;
-let el = document.getElementById("zeit");
-el.innerText = timer;
 
-// letzte 30 Sekunden blinkend
-if(timer >= TESTZEIT-30){
-    el.style.color = (timer % 2 === 0) ? "red" : "black";
-}else{
-    el.style.color = "black";
-}
+    gestarteteSpiele[aktuellesSpiel-1] = true;
 
-if(timer>=TESTZEIT){
-clearInterval(timerInterval);
-timerInterval=null;
-signalTonAbspielen();
-}
-},1000);
+    if(timerInterval) return;
+
+    timerInterval = setInterval(()=>{
+
+        timer++;
+
+        let el = document.getElementById("zeit");
+        el.innerText = timer;
+
+        // letzte 30 Sekunden blinkend
+        if(timer >= TESTZEIT-30){
+            el.style.color = (timer % 2 === 0) ? "red" : "black";
+        }else{
+            el.style.color = "black";
+        }
+
+        if(timer >= TESTZEIT){
+            clearInterval(timerInterval);
+            timerInterval = null;
+
+            signalTonAbspielen();
+
+            if(navigator.vibrate){
+                navigator.vibrate([300,200,300]);
+            }
+
+            alert("Zeit erreicht!");
+        }
+
+    },1000);
 }
 
 function pauseTimer(){clearInterval(timerInterval);timerInterval=null;}
