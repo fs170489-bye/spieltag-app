@@ -38,6 +38,40 @@ status=d.status;
 return true;
 }
 
+/* PAARUNGEN */
+function getPaarungen(){
+
+if(modus==="single"){
+return [{a:teamA,b:teamB}];
+}
+
+if(aktuellesSpiel===2){
+return [
+{a:teamA+"-1",b:teamB+"-2"},
+{a:teamA+"-2",b:teamB+"-1"}
+];
+}
+
+return [
+{a:teamA+"-1",b:teamB+"-1"},
+{a:teamA+"-2",b:teamB+"-2"}
+];
+}
+
+/* ZWISCHENSTAND */
+function berechneZwischenstand(){
+let pa=0,pb=0;
+spiele.forEach((s,i)=>{
+if(!gestarteteSpiele[i]) return;
+s.felder.forEach(f=>{
+if(f.a>f.b) pa++;
+else if(f.b>f.a) pb++;
+else {pa++;pb++;}
+});
+});
+return {pa,pb};
+}
+
 /* SETUP */
 function setModus(m){modus=m;zeigeTeamEingabe();}
 
@@ -57,29 +91,6 @@ document.body.innerHTML=`
 <button onclick="zeigeModusAuswahl()">Zurück</button>
 <button onclick="startSpieltag()">Start</button>`;
 }
-function getPaarungen(){
-
-    // Singlemodus
-    if(modus==="single"){
-        return [
-            {a: teamA, b: teamB}
-        ];
-    }
-
-    // Spiel 2 gekreuzt
-    if(aktuellesSpiel === 2){
-        return [
-            {a: teamA+"-1", b: teamB+"-2"},
-            {a: teamA+"-2", b: teamB+"-1"}
-        ];
-    }
-
-    // Spiel 1 und 3
-    return [
-        {a: teamA+"-1", b: teamB+"-1"},
-        {a: teamA+"-2", b: teamB+"-2"}
-    ];
-}
 
 function startSpieltag(){
 teamA=document.getElementById("teamA").value;
@@ -92,70 +103,60 @@ for(let i=0;i<3;i++){
 spiele.push(modus==="single"?{felder:[{a:0,b:0}]}:{felder:[{a:0,b:0},{a:0,b:0}]});
 }
 speichern();
-ladeSpiel();let hinweis="";
-if(aktuellesSpiel===3 && modus==="twin"){
-hinweis=`
-<div style="background:#ffeeba;padding:10px;font-weight:bold;">
-Hinweis: Vor Spielbeginn 2-4 Spieler zwischen A1/A2 und B1/B2 tauschen!
-</div>`;
-}
-}
-
-/* ZWISCHENSTAND */
-function berechneZwischenstand(){
-let pa=0,pb=0;
-spiele.forEach((s,i)=>{
-if(!gestarteteSpiele[i]) return;
-s.felder.forEach(f=>{
-if(f.a>f.b) pa++;
-else if(f.b>f.a) pb++;
-else {pa++;pb++;}
-});
-});
-return {pa,pb};
+ladeSpiel();
 }
 
 /* SPIEL */
 function ladeSpiel(){
 
+let paarungen=getPaarungen();
 let z=berechneZwischenstand();
+
+let hinweis="";
+if(aktuellesSpiel===3 && modus==="twin"){
+hinweis=`<div style="background:#ffeeba;padding:10px;font-weight:bold;">
+Vor Spielbeginn 2-4 Spieler tauschen!
+</div>`;
+}
 
 let html=`
 <h1>Spiel ${aktuellesSpiel}</h1>
+${hinweis}
 
 <div style="background:#e3f2fd;padding:10px;font-weight:bold;">
 Zwischenstand: ${teamA} ${z.pa} : ${z.pb} ${teamB}
 </div>
 
-<div style="display:flex;gap:10px;justify-content:center;margin-bottom:10px;">
-<button style="padding:6px 12px;" onclick="startTimer()">Start</button>
-<button style="padding:6px 12px;" onclick="pauseTimer()">Pause</button>
-<button style="padding:6px 12px;" onclick="resetTimer()">Reset</button>
+<div style="display:flex;gap:8px;justify-content:center;margin:10px;">
+<button onclick="startTimer()">Start</button>
+<button onclick="pauseTimer()">Pause</button>
+<button onclick="resetTimer()">Reset</button>
 </div>
 
 <h2 id="zeit" style="text-align:center;">${timer}</h2>
+<hr>
 `;
 
 spiele[aktuellesSpiel-1].felder.forEach((f,i)=>{
 html+=`
-<div style="border:1px solid #ccc;padding:10px;margin:10px;">
+<div style="border:1px solid #ccc;padding:12px;margin:10px;">
 <h3>Feld ${i+1}</h3>
-<div style="font-size:22px;text-align:center;">
-${teamA}-${i+1} --- ${f.a} | ${f.b} --- ${teamB}-${i+1}
+
+<div style="font-size:22px;text-align:center;font-weight:bold;">
+${paarungen[i].a} --- ${f.a} | ${f.b} --- ${paarungen[i].b}
 </div>
 
 <div style="display:flex;justify-content:space-between;">
 <div>
-<button style="background:green;color:white;font-size:28px;margin:8px;" onclick="plusA(${i})">+</button>
-<button style="background:red;color:white;font-size:28px;margin:8px;" onclick="minusA(${i})">-</button>
+<button style="background:green;color:white;font-size:26px;margin:6px;" onclick="plusA(${i})">+</button>
+<button style="background:red;color:white;font-size:26px;margin:6px;" onclick="minusA(${i})">-</button>
 </div>
 <div>
-<button style="background:green;color:white;font-size:28px;margin:8px;" onclick="plusB(${i})">+</button>
-<button style="background:red;color:white;font-size:28px;margin:8px;" onclick="minusB(${i})">-</button>
+<button style="background:green;color:white;font-size:26px;margin:6px;" onclick="plusB(${i})">+</button>
+<button style="background:red;color:white;font-size:26px;margin:6px;" onclick="minusB(${i})">-</button>
 </div>
 </div>
-</div>
-`;
+</div>`;
 });
 
 html+=`
@@ -173,55 +174,35 @@ function minusB(i){if(spiele[aktuellesSpiel-1].felder[i].b>0)spiele[aktuellesSpi
 
 /* TIMER */
 function startTimer(){
+gestarteteSpiele[aktuellesSpiel-1]=true;
+if(timerInterval) return;
 
-    gestarteteSpiele[aktuellesSpiel-1] = true;
+timerInterval=setInterval(()=>{
+timer++;
 
-    if(timerInterval) return;
+let el=document.getElementById("zeit");
+el.innerText=timer;
 
-    timerInterval = setInterval(()=>{
+if(timer>=TESTZEIT-30){
+el.style.color=(timer%2===0)?"red":"black";
+}else{
+el.style.color="black";
+}
 
-        timer++;
-
-        let el = document.getElementById("zeit");
-        el.innerText = timer;
-
-        // letzte 30 Sekunden blinkend
-        if(timer >= TESTZEIT-30){
-            el.style.color = (timer % 2 === 0) ? "red" : "black";
-        }else{
-            el.style.color = "black";
-        }
-
-        if(timer >= TESTZEIT){
-            clearInterval(timerInterval);
-            timerInterval = null;
-
-            signalTonAbspielen();
-
-            if(navigator.vibrate){
-                navigator.vibrate([300,200,300]);
-            }
-
-            alert("Zeit erreicht!");
-        }
-
-    },1000);
+if(timer>=TESTZEIT){
+clearInterval(timerInterval);
+timerInterval=null;
+signalTonAbspielen();
+if(navigator.vibrate) navigator.vibrate([300,200,300]);
+}
+},1000);
 }
 
 function pauseTimer(){clearInterval(timerInterval);timerInterval=null;}
-function resetTimer(){
-    clearInterval(timerInterval);
-    timerInterval=null;
-    timer=0;
-    ladeSpiel();
-}
+function resetTimer(){clearInterval(timerInterval);timerInterval=null;timer=0;ladeSpiel();}
 
 /* NAV */
-function vorherigesSpiel(){
-if(aktuellesSpiel>1){aktuellesSpiel--;timer=0;ladeSpiel();}
-else zeigeTeamEingabe();
-}
-
+function vorherigesSpiel(){ if(aktuellesSpiel>1){aktuellesSpiel--;timer=0;ladeSpiel();} }
 function naechstesSpiel(){
 timer=0;
 clearInterval(timerInterval);
