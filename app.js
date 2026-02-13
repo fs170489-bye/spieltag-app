@@ -202,7 +202,17 @@ function pauseTimer(){clearInterval(timerInterval);timerInterval=null;}
 function resetTimer(){clearInterval(timerInterval);timerInterval=null;timer=0;ladeSpiel();}
 
 /* NAV */
-function vorherigesSpiel(){ if(aktuellesSpiel>1){aktuellesSpiel--;timer=0;ladeSpiel();} }
+function vorherigesSpiel(){
+
+    if(aktuellesSpiel > 1){
+        aktuellesSpiel--;
+        timer = 0;
+        ladeSpiel();
+    }else{
+        zeigeTeamEingabe();   // zurück zur Team-Auswahl
+    }
+
+}
 function naechstesSpiel(){
 timer=0;
 clearInterval(timerInterval);
