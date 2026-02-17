@@ -35,7 +35,7 @@ function erstelleSession(){
 
     starteLiveListener();
 
-    zeigeQRCode();   // QR automatisch anzeigen
+    zeigeQRStartseite();   // QR Startseite anzeigen
 
     alert("Live-Session gestartet: "+sessionId);
 }
@@ -281,7 +281,6 @@ function startSpieltag(){
 
     erstelleSession();   // Session + QR vorbereiten
 
-    zeigeQRStartseite(); // QR Seite anzeigen
 }
 
 /* ---------- SPIEL ---------- */
