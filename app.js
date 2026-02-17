@@ -92,14 +92,32 @@ function starteTimerListener(){
         let data = snap.val();
         if(!data) return;
 
+        clearInterval(timerInterval);
+        timerInterval = null;
+
         if(data.running){
+
             timer = Math.floor((Date.now()-data.start)/1000) + (data.value||0);
+
+            timerInterval = setInterval(()=>{
+                timer++;
+                let el=document.getElementById("zeit");
+                if(el){
+                    el.innerText = formatZeit(timer);
+
+                    if(timer >= TESTZEIT-30){
+                        el.style.color = (timer%2===0) ? "red" : "black";
+                    }else{
+                        el.style.color = "black";
+                    }
+                }
+            },1000);
+
         }else{
             timer = data.value || 0;
+            let el=document.getElementById("zeit");
+            if(el) el.innerText = formatZeit(timer);
         }
-
-        let el=document.getElementById("zeit");
-        if(el) el.innerText = formatZeit(timer);
     });
 }
 registriereGeraet();
