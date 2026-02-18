@@ -70,13 +70,15 @@ function starteLiveListener(){
         liveRef.off();   // alten Listener entfernen
     }
 
-    liveRef = db.ref("sessions/"+sessionId+"/spiele");
+    liveRef = db.ref("sessions/"+sessionId);
 
     liveRef.on("value", (snapshot)=>{
     let data = snapshot.val();
     if(!data) return;
 
-    spiele = data;
+    if(data.spiele) spiele = data.spiele;
+    if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
+    if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
 
     if(!qrScreenAktiv){
         ladeSpiel();
@@ -94,8 +96,8 @@ function starteTimerListener(){
         let data = snap.val();
         if(!data) return;
 
-        clearInterval(timerInterval);
-        timerInterval = null;
+       clearInterval(timerInterval);
+       timerInterval = null;
 
         if(data.running){
 
@@ -297,8 +299,8 @@ function startSpieltag(){
 
     speichern();
 
-    erstelleSession();   // Session + QR vorbereiten
-
+    erstelleSession();      
+    zeigeQRStartseite();    
 }
 
 /* ---------- SPIEL ---------- */
@@ -358,81 +360,113 @@ document.body.innerHTML=html;
 
 /* ---------- TORE ---------- */
 function plusA(i){
-spiele[aktuellesSpiel-1].felder[i].a++;
-speichern();
+    spiele[aktuellesSpiel-1].felder[i].a++;
+    speichern();
 
-if(sessionId && navigator.onLine){
-    db.ref("sessions/"+sessionId+"/spiele").set(spiele);
-}
+    if(sessionId && navigator.onLine){
+        db.ref("sessions/"+sessionId).update({
+            spiele: spiele,
+            aktuellesSpiel: aktuellesSpiel,
+            gestarteteSpiele: gestarteteSpiele
+        });
+    }
 
-ladeSpiel();
+    ladeSpiel();
 }
 
 function minusA(i){
-if(spiele[aktuellesSpiel-1].felder[i].a>0)
-spiele[aktuellesSpiel-1].felder[i].a--;
+    if(spiele[aktuellesSpiel-1].felder[i].a>0)
+        spiele[aktuellesSpiel-1].felder[i].a--;
 
-speichern();
+    speichern();
 
-if(sessionId && navigator.onLine){
-    db.ref("sessions/"+sessionId+"/spiele").set(spiele);
-}
+    if(sessionId && navigator.onLine){
+        db.ref("sessions/"+sessionId).update({
+            spiele: spiele,
+            aktuellesSpiel: aktuellesSpiel,
+            gestarteteSpiele: gestarteteSpiele
+        });
+    }
 
-ladeSpiel();
+    ladeSpiel();
 }
 
 function plusB(i){
-spiele[aktuellesSpiel-1].felder[i].b++;
-speichern();
+    spiele[aktuellesSpiel-1].felder[i].b++;
+    speichern();
 
-if(sessionId && navigator.onLine){
-    db.ref("sessions/"+sessionId+"/spiele").set(spiele);
-}
+    if(sessionId && navigator.onLine){
+        db.ref("sessions/"+sessionId).update({
+            spiele: spiele,
+            aktuellesSpiel: aktuellesSpiel,
+            gestarteteSpiele: gestarteteSpiele
+        });
+    }
 
-ladeSpiel();
+    ladeSpiel();
 }
 
 function minusB(i){
-if(spiele[aktuellesSpiel-1].felder[i].b>0)
-spiele[aktuellesSpiel-1].felder[i].b--;
+    if(spiele[aktuellesSpiel-1].felder[i].b>0)
+        spiele[aktuellesSpiel-1].felder[i].b--;
 
-speichern();
+    speichern();
 
-if(sessionId && navigator.onLine){
-    db.ref("sessions/"+sessionId+"/spiele").set(spiele);
-}
+    if(sessionId && navigator.onLine){
+        db.ref("sessions/"+sessionId).update({
+            spiele: spiele,
+            aktuellesSpiel: aktuellesSpiel,
+            gestarteteSpiele: gestarteteSpiele
+        });
+    }
 
-ladeSpiel();
+    ladeSpiel();
 }
 
 /* ---------- TIMER ---------- */
 function startTimer(){
+
     if(!nurMaster()) return;
-gestarteteSpiele[aktuellesSpiel-1]=true;
-if(sessionId){
-    db.ref("sessions/"+sessionId+"/timer").set({
-        start: Date.now(),
-        running: true,
-        value: timer
-    });
-}
 
-timerInterval=setInterval(()=>{
-timer++;
-let el=document.getElementById("zeit");
-el.innerText=formatZeit(timer);
+    gestarteteSpiele[aktuellesSpiel-1]=true;
 
-if(timer>=TESTZEIT-30){
-el.style.color=(timer%2===0)?"red":"black";
-}else el.style.color="black";
+    if(sessionId){
+        db.ref("sessions/"+sessionId).update({
+            gestarteteSpiele: gestarteteSpiele
+        });
 
-if(timer>=TESTZEIT){
-clearInterval(timerInterval);
-timerInterval=null;
-signalTonAbspielen();
-if(navigator.vibrate) navigator.vibrate([300,200,300]);
-}
-},1000);
+        db.ref("sessions/"+sessionId+"/timer").set({
+            start: Date.now(),
+            running: true,
+            value: timer
+        });
+    }
+
+    clearInterval(timerInterval);
+
+    timerInterval=setInterval(()=>{
+
+        timer++;
+
+        let el=document.getElementById("zeit");
+        if(el){
+            el.innerText=formatZeit(timer);
+
+            if(timer>=TESTZEIT-30){
+                el.style.color=(timer%2===0)?"red":"black";
+            }else{
+                el.style.color="black";
+            }
+        }
+
+        if(timer>=TESTZEIT){
+            clearInterval(timerInterval);
+            timerInterval=null;
+            signalTonAbspielen();
+            if(navigator.vibrate) navigator.vibrate([300,200,300]);
+        }
+
+    },1000);
 }
 
 function pauseTimer(){
@@ -466,17 +500,43 @@ function resetTimer(){
 /* ---------- NAV ---------- */
 function vorherigesSpiel(){
     if(!nurMaster()) return;
-if(aktuellesSpiel>1){aktuellesSpiel--;timer=0;ladeSpiel();}
-else zeigeTeamEingabe();
+
+    if(aktuellesSpiel>1){
+        aktuellesSpiel--;
+        timer=0;
+
+        if(sessionId){
+            db.ref("sessions/"+sessionId).update({
+                aktuellesSpiel: aktuellesSpiel
+            });
+        }
+
+        ladeSpiel();
+    }else{
+        zeigeTeamEingabe();
+    }
 }
 
 function naechstesSpiel(){
     if(!nurMaster()) return;
-timer=0;
-clearInterval(timerInterval);
-timerInterval=null;
-if(aktuellesSpiel<3){aktuellesSpiel++;ladeSpiel();}
-else zeigeErgebnis();
+
+    timer=0;
+    clearInterval(timerInterval);
+    timerInterval=null;
+
+    if(aktuellesSpiel<3){
+        aktuellesSpiel++;
+
+        if(sessionId){
+            db.ref("sessions/"+sessionId).update({
+                aktuellesSpiel: aktuellesSpiel
+            });
+        }
+
+        ladeSpiel();
+    }else{
+        zeigeErgebnis();
+    }
 }
 
 /* ---------- ERGEBNIS ---------- */
@@ -547,10 +607,6 @@ function zeigeDashboard(){
 function springeZuSpiel(n){aktuellesSpiel=n;ladeSpiel();}
 
 /* ---------- ONLINE / OFFLINE ---------- */
-window.addEventListener("offline", ()=>{
-    alert("Internet getrennt – Daten werden lokal gespeichert");
-});
-
 window.addEventListener("online", ()=>{
 
     alert("Internet wieder verbunden – Synchronisiere Daten");
@@ -558,9 +614,13 @@ window.addEventListener("online", ()=>{
     if(sessionId){
         starteLiveListener();
 
-        // lokale Daten sicherheitshalber hochladen
-        db.ref("sessions/"+sessionId+"/spiele").set(spiele);
+        db.ref("sessions/"+sessionId).update({
+            spiele: spiele,
+            aktuellesSpiel: aktuellesSpiel,
+            gestarteteSpiele: gestarteteSpiele
+        });
     }
+
 });
 
 /* ---------- START ---------- */
