@@ -79,6 +79,11 @@ function starteLiveListener(){
     if(data.spiele) spiele = data.spiele;
     if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
     if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
+    if(data.status === "ergebnis"){
+    status = "ergebnis";
+    zeigeErgebnis();
+    return;
+}
 
     if(!qrScreenAktiv){
         ladeSpiel();
@@ -360,6 +365,7 @@ document.body.innerHTML=html;
 
 /* ---------- TORE ---------- */
 function plusA(i){
+    if(status === "ergebnis") return;
     spiele[aktuellesSpiel-1].felder[i].a++;
     speichern();
 
@@ -375,6 +381,7 @@ function plusA(i){
 }
 
 function minusA(i){
+    if(status === "ergebnis") return;
     if(spiele[aktuellesSpiel-1].felder[i].a>0)
         spiele[aktuellesSpiel-1].felder[i].a--;
 
@@ -392,6 +399,7 @@ function minusA(i){
 }
 
 function plusB(i){
+    if(status === "ergebnis") return;
     spiele[aktuellesSpiel-1].felder[i].b++;
     speichern();
 
@@ -407,6 +415,7 @@ function plusB(i){
 }
 
 function minusB(i){
+    if(status === "ergebnis") return;
     if(spiele[aktuellesSpiel-1].felder[i].b>0)
         spiele[aktuellesSpiel-1].felder[i].b--;
 
@@ -460,11 +469,20 @@ function startTimer(){
         }
 
         if(timer>=TESTZEIT){
-            clearInterval(timerInterval);
-            timerInterval=null;
-            signalTonAbspielen();
-            if(navigator.vibrate) navigator.vibrate([300,200,300]);
-        }
+
+    clearInterval(timerInterval);
+    timerInterval=null;
+
+    if(sessionId){
+        db.ref("sessions/"+sessionId+"/timer").update({
+            running:false,
+            value: TESTZEIT
+        });
+    }
+
+    signalTonAbspielen();
+    if(navigator.vibrate) navigator.vibrate([300,200,300]);
+}
 
     },1000);
 }
@@ -477,7 +495,10 @@ function pauseTimer(){
     timerInterval=null;
 
     if(sessionId){
-        db.ref("sessions/"+sessionId+"/timer/running").set(false);
+        db.ref("sessions/"+sessionId+"/timer").update({
+            running:false,
+            value: timer
+        });
     }
 }
 function resetTimer(){
@@ -518,13 +539,15 @@ function vorherigesSpiel(){
 }
 
 function naechstesSpiel(){
+
     if(!nurMaster()) return;
 
-    timer=0;
+    timer = 0;
     clearInterval(timerInterval);
-    timerInterval=null;
+    timerInterval = null;
 
-    if(aktuellesSpiel<3){
+    if(aktuellesSpiel < 3){
+
         aktuellesSpiel++;
 
         if(sessionId){
@@ -534,7 +557,15 @@ function naechstesSpiel(){
         }
 
         ladeSpiel();
-    }else{
+
+    } else {
+
+        if(sessionId){
+            db.ref("sessions/"+sessionId).update({
+                status: "ergebnis"
+            });
+        }
+
         zeigeErgebnis();
     }
 }
