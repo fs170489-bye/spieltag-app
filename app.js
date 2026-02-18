@@ -82,6 +82,8 @@ function starteLiveListener(){
         ladeSpiel();
     }
 });
+registriereGeraet();
+starteTimerListener();
 }
 function starteTimerListener(){
 
@@ -120,8 +122,6 @@ function starteTimerListener(){
         }
     });
 }
-registriereGeraet();
-starteTimerListener();
 
 function registriereGeraet(){
 
