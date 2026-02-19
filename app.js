@@ -338,9 +338,24 @@ function ladeSpiel(){
 
 let paarungen=getPaarungen();
 let z=berechneZwischenstand();
+let hinweis = "";
 
+if(aktuellesSpiel === 3 && modus === "twin"){
+    hinweis = `
+        <div style="
+            background:#ffeeba;
+            padding:12px;
+            margin:10px 0;
+            font-weight:bold;
+            border-radius:8px;
+        ">
+            ⚠️ Vor Spielbeginn 2–4 Spieler zwischen A1/A2 und B1/B2 tauschen!
+        </div>
+    `;
+}
 let html=`
 <h1>Spiel ${aktuellesSpiel}</h1>
+${hinweis}
 
 <div style="background:#e3f2fd;padding:10px;font-weight:bold;">
 Zwischenstand: ${teamA} ${z.pa} : ${z.pb} ${teamB}
