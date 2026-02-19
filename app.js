@@ -79,8 +79,7 @@ function starteLiveListener(){
     if(data.spiele) spiele = data.spiele;
     if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
     if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
-    if(data.status === "ergebnis"){
-    status = "ergebnis";
+  if(data.status === "ergebnis"){
     zeigeErgebnis();
     return;
 }
@@ -92,6 +91,7 @@ function starteLiveListener(){
 registriereGeraet();
 starteTimerListener();
 }
+
 function starteTimerListener(){
 
     if(!sessionId) return;
@@ -101,32 +101,57 @@ function starteTimerListener(){
         let data = snap.val();
         if(!data) return;
 
-       clearInterval(timerInterval);
-       timerInterval = null;
+        // altes Interval stoppen
+        if(timerInterval){
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
 
+        // Zeit setzen
+        timer = data.value || 0;
+
+        let el = document.getElementById("zeit");
+        if(el){
+            el.innerText = formatZeit(timer);
+
+            if(timer >= TESTZEIT-30){
+                el.style.color = (timer%2===0) ? "red" : "black";
+            } else {
+                el.style.color = "black";
+            }
+        }
+
+        // Wenn Timer läuft
         if(data.running){
 
-            timer = Math.floor((Date.now()-data.start)/1000) + (data.value||0);
-
             timerInterval = setInterval(()=>{
-                timer++;
-                let el=document.getElementById("zeit");
+
+                timer = Math.floor((Date.now() - data.start)/1000) + (data.value || 0);
+
+                let el = document.getElementById("zeit");
                 if(el){
                     el.innerText = formatZeit(timer);
 
                     if(timer >= TESTZEIT-30){
                         el.style.color = (timer%2===0) ? "red" : "black";
-                    }else{
+                    } else {
                         el.style.color = "black";
                     }
                 }
+
             },1000);
 
-        }else{
-            timer = data.value || 0;
-            let el=document.getElementById("zeit");
-            if(el) el.innerText = formatZeit(timer);
         }
+
+        // 🔥 WICHTIG: End-Signal hier global auslösen
+        if(!data.running && timer >= TESTZEIT){
+
+            signalTonAbspielen();
+            if(navigator.vibrate){
+                navigator.vibrate([300,200,300]);
+            }
+        }
+
     });
 }
 
@@ -364,72 +389,40 @@ document.body.innerHTML=html;
 }
 
 /* ---------- TORE ---------- */
-function plusA(i){
-    if(status === "ergebnis") return;
-    spiele[aktuellesSpiel-1].felder[i].a++;
-    speichern();
+function updateLiveSpiele(){
 
     if(sessionId && navigator.onLine){
+
         db.ref("sessions/"+sessionId).update({
-            spiele: spiele,
-            aktuellesSpiel: aktuellesSpiel,
-            gestarteteSpiele: gestarteteSpiele
+            spiele: spiele
         });
     }
+}
 
-    ladeSpiel();
+function plusA(i){
+    spiele[aktuellesSpiel-1].felder[i].a++;
+    speichern();
+    updateLiveSpiele();
 }
 
 function minusA(i){
-    if(status === "ergebnis") return;
     if(spiele[aktuellesSpiel-1].felder[i].a>0)
         spiele[aktuellesSpiel-1].felder[i].a--;
-
     speichern();
-
-    if(sessionId && navigator.onLine){
-        db.ref("sessions/"+sessionId).update({
-            spiele: spiele,
-            aktuellesSpiel: aktuellesSpiel,
-            gestarteteSpiele: gestarteteSpiele
-        });
-    }
-
-    ladeSpiel();
+    updateLiveSpiele();
 }
 
 function plusB(i){
-    if(status === "ergebnis") return;
     spiele[aktuellesSpiel-1].felder[i].b++;
     speichern();
-
-    if(sessionId && navigator.onLine){
-        db.ref("sessions/"+sessionId).update({
-            spiele: spiele,
-            aktuellesSpiel: aktuellesSpiel,
-            gestarteteSpiele: gestarteteSpiele
-        });
-    }
-
-    ladeSpiel();
+    updateLiveSpiele();
 }
 
 function minusB(i){
-    if(status === "ergebnis") return;
     if(spiele[aktuellesSpiel-1].felder[i].b>0)
         spiele[aktuellesSpiel-1].felder[i].b--;
-
     speichern();
-
-    if(sessionId && navigator.onLine){
-        db.ref("sessions/"+sessionId).update({
-            spiele: spiele,
-            aktuellesSpiel: aktuellesSpiel,
-            gestarteteSpiele: gestarteteSpiele
-        });
-    }
-
-    ladeSpiel();
+    updateLiveSpiele();
 }
 
 /* ---------- TIMER ---------- */
@@ -572,6 +565,8 @@ function naechstesSpiel(){
 
 /* ---------- ERGEBNIS ---------- */
 function zeigeErgebnis(){
+    status = "ergebnis";
+speichern();
 let pa=0,pb=0;
 spiele.forEach(s=>s.felder.forEach(f=>{
 if(f.a>f.b) pa++;
