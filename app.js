@@ -88,8 +88,6 @@ function starteLiveListener(){
         ladeSpiel();
     }
 });
-registriereGeraet();
-starteTimerListener();
 }
 
 function starteTimerListener(){
@@ -186,7 +184,9 @@ function pruefeSessionJoin(){
 
         speichern();
 
-        starteLiveListener();
+        registriereGeraet();      
+        starteLiveListener();     
+        starteTimerListener();    
 
         alert("Mit Live-Session verbunden");
     }
