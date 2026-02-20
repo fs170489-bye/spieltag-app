@@ -184,6 +184,9 @@ function pruefeSessionJoin(){
         rolle = "counter";
         joinTime = Date.now();
 
+        // URL Parameter entfernen (wichtig!)
+        window.history.replaceState({}, document.title, window.location.pathname);
+
         speichern();
 
         registriereGeraet();
@@ -582,24 +585,47 @@ function naechstesSpiel(){
 
 /* ---------- ERGEBNIS ---------- */
 function zeigeErgebnis(){
-    status = "ergebnis";
-speichern();
-let pa=0,pb=0;
-spiele.forEach(s=>s.felder.forEach(f=>{
-if(f.a>f.b) pa++;
-else if(f.b>f.a) pb++;
-else {pa++;pb++;}
-}));
 
-document.body.innerHTML=`
-<h1>Ergebnis</h1>
-<h2>${teamA}: ${pa}</h2>
-<h2>${teamB}: ${pb}</h2>
-<button onclick="exportierePDF()">PDF</button>
-<button onclick="springeZuSpiel(3)">Zurück</button>
-<button onclick="neuerSpieltag()">Neuer Spieltag</button>
-<button onclick="beendeSession()">Spiel beendet – Verbindungen trennen</button>
-`;
+    status = "ergebnis";
+    speichern();
+
+    if(sessionId && rolle === "master"){
+        db.ref("sessions/"+sessionId).update({
+            status: "ergebnis"
+        });
+    }
+
+    if(timerInterval){
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+
+    let pa=0,pb=0;
+    spiele.forEach(s=>s.felder.forEach(f=>{
+        if(f.a>f.b) pa++;
+        else if(f.b>f.a) pb++;
+        else {pa++;pb++;}
+    }));
+
+    document.body.innerHTML = `
+        <h1>Ergebnis</h1>
+
+        <h2>${teamA}: ${pa}</h2>
+        <h2>${teamB}: ${pb}</h2>
+
+        <br>
+
+        ${rolle==="master" ? `
+            <button onclick="exportierePDF()">PDF</button>
+            <button onclick="springeZuSpiel(3)">Zurück zu Spiel 3</button>
+            <button onclick="neuerSpieltag()">Neuer Spieltag</button>
+            <button onclick="beendeSession()">Spiel beendet – Verbindungen trennen</button>
+        ` : `
+            <div style="margin-top:20px;font-weight:bold;">
+                Spiel beendet – Bitte auf Master warten
+            </div>
+        `}
+    `;
 }
 async function exportierePDF(){
 const { jsPDF } = window.jspdf;
@@ -610,7 +636,31 @@ pdf.addImage(img,"PNG",0,0);
 pdf.save("spieltag.pdf");
 }
 
-function neuerSpieltag(){localStorage.clear();location.reload();}
+function neuerSpieltag(){
+
+    if(sessionId && rolle==="master"){
+        db.ref("sessions/"+sessionId).remove();
+    }
+
+    if(liveRef){
+        liveRef.off();
+        liveRef = null;
+    }
+
+    clearInterval(timerInterval);
+    timerInterval=null;
+
+    localStorage.clear();
+
+    sessionId=null;
+    rolle="master";
+    qrScreenAktiv=false;
+    status="spiel";
+
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    location.reload();
+}
 function beendeSession(){
 
     if(!nurMaster()) return;
