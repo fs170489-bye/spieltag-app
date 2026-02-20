@@ -67,27 +67,29 @@ function starteLiveListener(){
     if(!sessionId) return;
 
     if(liveRef){
-        liveRef.off();   // alten Listener entfernen
+        liveRef.off();   // alten Listener komplett entfernen
+        liveRef = null;
     }
 
     liveRef = db.ref("sessions/"+sessionId);
 
     liveRef.on("value", (snapshot)=>{
-    let data = snapshot.val();
-    if(!data) return;
 
-    if(data.spiele) spiele = data.spiele;
-    if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
-    if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
-  if(data.status === "ergebnis"){
-    zeigeErgebnis();
-    return;
-}
+        let data = snapshot.val();
+        if(!data) return;
 
-    if(!qrScreenAktiv){
+        // Spielstatus synchronisieren
+        if(data.status === "ergebnis"){
+            zeigeErgebnis();
+            return;
+        }
+
+        if(data.spiele) spiele = data.spiele;
+        if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
+        if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
+
         ladeSpiel();
-    }
-});
+    });
 }
 
 function starteTimerListener(){
@@ -184,11 +186,11 @@ function pruefeSessionJoin(){
 
         speichern();
 
-        registriereGeraet();      
-        starteLiveListener();     
-        starteTimerListener();    
+        registriereGeraet();
+        starteTimerListener();
+        starteLiveListener();
 
-        alert("Mit Live-Session verbunden");
+        document.body.innerHTML = "<h2>Verbunden... Lade Spiel...</h2>";
     }
 }
 function nurMaster(){
@@ -349,7 +351,7 @@ if(aktuellesSpiel === 3 && modus === "twin"){
             font-weight:bold;
             border-radius:8px;
         ">
-            ⚠️ Vor Spielbeginn 2–4 Spieler zwischen A1/A2 und B1/B2 tauschen!
+            ⚠️ Vor Spielbeginn 2–4 Spieler tauschen!
         </div>
     `;
 }
@@ -610,17 +612,32 @@ pdf.save("spieltag.pdf");
 
 function neuerSpieltag(){localStorage.clear();location.reload();}
 function beendeSession(){
+
     if(!nurMaster()) return;
 
     if(sessionId){
         db.ref("sessions/"+sessionId).remove();
     }
 
-    sessionId=null;
-    rolle="master";
-    speichern();
+    // ALLES zurücksetzen
+    if(liveRef){
+        liveRef.off();
+        liveRef = null;
+    }
+
+    clearInterval(timerInterval);
+    timerInterval = null;
+
+    sessionId = null;
+    rolle = "master";
+    qrScreenAktiv = false;
+    status = "spiel";
+
+    localStorage.removeItem("spieltagApp");
 
     alert("Session beendet");
+
+    location.reload();   // 🔥 sauberer Neustart
 }
 function zeigeDashboard(){
 
