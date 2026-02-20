@@ -76,13 +76,29 @@ function starteLiveListener(){
     liveRef.on("value", (snapshot)=>{
 
         let data = snapshot.val();
-        if(!data) return;
 
-        // Spielstatus synchronisieren
-        if(data.status === "ergebnis"){
+        if(!data){
+            
+            if(data.status === "ergebnis"){
             zeigeErgebnis();
             return;
-        }
+            }
+
+        document.body.innerHTML = `
+        <h2>Session beendet</h2>
+        <p>Bitte neuen QR-Code scannen.</p>
+        `;
+
+        if(liveRef){
+        liveRef.off();
+        liveRef = null;
+     }
+
+        sessionId = null;
+        localStorage.clear();
+
+        return;
+    }
 
         if(data.spiele) spiele = data.spiele;
         if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
@@ -366,11 +382,13 @@ ${hinweis}
 Zwischenstand: ${teamA} ${z.pa} : ${z.pb} ${teamB}
 </div>
 
+${rolle==="master" ? `
 <div style="display:flex;gap:8px;justify-content:center;margin:10px;">
-<button onclick="startTimer()">Start</button>
-<button onclick="pauseTimer()">Pause</button>
-<button onclick="resetTimer()">Reset</button>
+    <button onclick="startTimer()">Start</button>
+    <button onclick="pauseTimer()">Pause</button>
+    <button onclick="resetTimer()">Reset</button>
 </div>
+` : ``}
 
 <h2 id="zeit" style="text-align:center;">${formatZeit(timer)}</h2>
 <hr>
@@ -399,12 +417,13 @@ ${paarungen[i].a} --- ${f.a} | ${f.b} --- ${paarungen[i].b}
 });
 
 html+=`
-<button onclick="vorherigesSpiel()">Zurück</button>
-<button onclick="naechstesSpiel()">Weiter</button>
-<button onclick="erstelleSession()">Live starten</button>
-${rolle==="master" ? `<button onclick="zeigeQRCode()">QR anzeigen</button>` : ``}
-<button onclick="zeigeDashboard()">Dashboard</button>`;
-
+${rolle==="master" ? `
+    <button onclick="vorherigesSpiel()">Zurück</button>
+    <button onclick="naechstesSpiel()">Weiter</button>
+    <button onclick="zeigeQRCode()">QR anzeigen</button>
+    <button onclick="zeigeDashboard()">Dashboard</button>
+` : ``}
+`;
 document.body.innerHTML=html;
 }
 
