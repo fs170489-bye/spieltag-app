@@ -116,13 +116,16 @@ function starteLiveListener(){
            zeigeErgebnis();
            return;
          }
-        if(data.spiele) spiele = data.spiele;
-        if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
-        if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
+          if(data.teamA) teamA = data.teamA;
+          if(data.teamB) teamB = data.teamB;
 
-        if(data.status === "ergebnis"){
-        zeigeErgebnis();
-        return;
+          if(data.spiele) spiele = data.spiele;
+          if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
+          if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
+
+          if(data.status === "ergebnis"){
+          zeigeErgebnis();
+          return;
         }
 
         ladeSpiel();
