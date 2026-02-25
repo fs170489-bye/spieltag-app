@@ -29,14 +29,33 @@ function erstelleSession(){
         timerInterval = null;
     }
 
-    sessionId = null;
-
     if(!teamA || !teamB){
         alert("Bitte zuerst Spieltag starten");
         return;
     }
 
+    // Neue Session ID
     sessionId = Math.random().toString(36).substring(2,8);
+
+    // 🔥 Session in Firebase erstellen
+    db.ref("sessions/"+sessionId).set({
+        spiele: spiele,
+        teamA: teamA,
+        teamB: teamB,
+        aktuellesSpiel: aktuellesSpiel,
+        gestarteteSpiele: gestarteteSpiele,
+        status: "spiel"
+    });
+
+    speichern();
+
+    // Listener starten
+    starteLiveListener();
+    starteTimerListener();
+
+    // QR anzeigen
+    zeigeQRStartseite();
+
     alert("Live-Session gestartet: "+sessionId);
 }
 let liveRef = null;
@@ -79,27 +98,24 @@ function starteLiveListener(){
 
         if(!data){
             
-            if(data.status === "ergebnis"){
-            zeigeErgebnis();
-            return;
-            }
+            document.body.innerHTML = `
+            <h2>Session beendet</h2>
+            <p>Bitte neuen QR-Code scannen.</p>
+            `;
 
-        document.body.innerHTML = `
-        <h2>Session beendet</h2>
-        <p>Bitte neuen QR-Code scannen.</p>
-        `;
+            if(liveRef){
+            liveRef.off();
+            liveRef = null;
+          }
 
-        if(liveRef){
-        liveRef.off();
-        liveRef = null;
-     }
-
-        sessionId = null;
-        localStorage.clear();
-
-        return;
-        }
-
+           sessionId = null;
+           localStorage.clear();
+           return;
+         }
+          if(data.status === "ergebnis"){
+           zeigeErgebnis();
+           return;
+         }
         if(data.spiele) spiele = data.spiele;
         if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
         if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
@@ -354,7 +370,6 @@ function startSpieltag(){
     }
 
     speichern();
-
     erstelleSession();         
 }
 
