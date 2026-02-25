@@ -18,25 +18,25 @@ const TESTZEIT = 10;
 /* ---------- SESSION ---------- */
 function erstelleSession(){
 
+    // 🔥 Alte Session sauber zurücksetzen
+    if(liveRef){
+        liveRef.off();
+        liveRef = null;
+    }
+
+    if(timerInterval){
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+
+    sessionId = null;
+
     if(!teamA || !teamB){
         alert("Bitte zuerst Spieltag starten");
         return;
     }
 
     sessionId = Math.random().toString(36).substring(2,8);
-
-    db.ref("sessions/"+sessionId).set({
-        spiele: spiele,
-        teamA: teamA,
-        teamB: teamB
-    });
-
-    speichern();
-
-    starteLiveListener();
-
-    zeigeQRStartseite();   // QR Startseite anzeigen
-
     alert("Live-Session gestartet: "+sessionId);
 }
 let liveRef = null;
@@ -98,11 +98,16 @@ function starteLiveListener(){
         localStorage.clear();
 
         return;
-    }
+        }
 
         if(data.spiele) spiele = data.spiele;
         if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
         if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
+
+        if(data.status === "ergebnis"){
+        zeigeErgebnis();
+        return;
+        }
 
         ladeSpiel();
     });
@@ -350,8 +355,7 @@ function startSpieltag(){
 
     speichern();
 
-    erstelleSession();      
-    zeigeQRStartseite();    
+    erstelleSession();         
 }
 
 /* ---------- SPIEL ---------- */
