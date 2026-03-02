@@ -833,17 +833,26 @@ function toggleDevice(id, aktivieren){
 } 
 
 /* ---------- START ---------- */
-window.onload=function(){
+window.onload = function(){
+
     pruefeSessionJoin();
-if(laden()){
-    if(Date.now() - joinTime > 3*60*60*1000){
-    alert("Session abgelaufen");
-    neuerSpieltag();
-    return;
-}
-if(status==="ergebnis") zeigeErgebnis();
-else ladeSpiel();
-}else{
-zeigeModusAuswahl();
-}
+
+    // 🔥 WICHTIG: Wenn Counter, hier stoppen
+    if(rolle === "counter"){
+        return;
+    }
+
+    if(laden()){
+        if(Date.now() - joinTime > 3*60*60*1000){
+            alert("Session abgelaufen");
+            neuerSpieltag();
+            return;
+        }
+
+        if(status==="ergebnis") zeigeErgebnis();
+        else ladeSpiel();
+
+    } else {
+        zeigeModusAuswahl();
+    }
 }
