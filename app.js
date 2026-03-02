@@ -84,6 +84,8 @@ function zeigeQRStartseite(){
 
 function starteLiveListener(){
 
+    if(rolle === "counter" && !data.spiele) return;
+
     if(!sessionId) return;
 
     if(liveRef){
@@ -221,16 +223,20 @@ function pruefeSessionJoin(){
         rolle = "counter";
         joinTime = Date.now();
 
-        // URL Parameter entfernen (wichtig!)
+        // URL Parameter entfernen
         window.history.replaceState({}, document.title, window.location.pathname);
 
         speichern();
 
-        registriereGeraet();
-        starteTimerListener();
-        starteLiveListener();
-
+        // 🔥 ZUERST Lade-Anzeige setzen
         document.body.innerHTML = "<h2>Verbunden... Lade Spiel...</h2>";
+
+        // 🔥 DANN Listener starten
+        starteLiveListener();
+        starteTimerListener();
+
+        // 🔥 Registrierung erst NACH Listener
+        registriereGeraet();
     }
 }
 function nurMaster(){
