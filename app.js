@@ -84,8 +84,6 @@ function zeigeQRStartseite(){
 
 function starteLiveListener(){
 
-    if(rolle === "counter" && !data.spiele) return;
-
     if(!sessionId) return;
 
     if(liveRef){
@@ -94,6 +92,9 @@ function starteLiveListener(){
     }
 
     liveRef = db.ref("sessions/"+sessionId);
+
+    // 🔥 HIER FEHLTE ES
+    registriereGeraet();
 
     liveRef.on("value", (snapshot)=>{
 
@@ -107,13 +108,11 @@ function starteLiveListener(){
             return;
         }
 
-        // 🔥 GANZ WICHTIG
-        if(data.teamA) teamA = data.teamA;
-        if(data.teamB) teamB = data.teamB;
-
-        if(data.spiele) spiele = data.spiele;
-        if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
-        if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
+        teamA = data.teamA || "";
+        teamB = data.teamB || "";
+        spiele = data.spiele || [];
+        aktuellesSpiel = data.aktuellesSpiel ?? 1;
+        gestarteteSpiele = data.gestarteteSpiele || [false,false,false];
 
         if(data.status === "ergebnis"){
             zeigeErgebnis();
