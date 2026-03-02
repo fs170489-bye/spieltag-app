@@ -87,7 +87,7 @@ function starteLiveListener(){
     if(!sessionId) return;
 
     if(liveRef){
-        liveRef.off();   // alten Listener komplett entfernen
+        liveRef.off();
         liveRef = null;
     }
 
@@ -98,35 +98,24 @@ function starteLiveListener(){
         let data = snapshot.val();
 
         if(!data){
-            
             document.body.innerHTML = `
-            <h2>Session beendet</h2>
-            <p>Bitte neuen QR-Code scannen.</p>
+                <h2>Session beendet</h2>
+                <p>Bitte neuen QR-Code scannen.</p>
             `;
+            return;
+        }
 
-            if(liveRef){
-            liveRef.off();
-            liveRef = null;
-          }
+        // 🔥 GANZ WICHTIG
+        if(data.teamA) teamA = data.teamA;
+        if(data.teamB) teamB = data.teamB;
 
-           sessionId = null;
-           localStorage.clear();
-           return;
-         }
-          if(data.status === "ergebnis"){
-           zeigeErgebnis();
-           return;
-         }
-          if(data.teamA) teamA = data.teamA;
-          if(data.teamB) teamB = data.teamB;
+        if(data.spiele) spiele = data.spiele;
+        if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
+        if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
 
-          if(data.spiele) spiele = data.spiele;
-          if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
-          if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
-
-          if(data.status === "ergebnis"){
-          zeigeErgebnis();
-          return;
+        if(data.status === "ergebnis"){
+            zeigeErgebnis();
+            return;
         }
 
         ladeSpiel();
