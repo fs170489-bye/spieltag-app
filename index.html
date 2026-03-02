@@ -1,42 +1,50 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Spieltag Helfer</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+
+    <!-- 🔥 WICHTIG für iOS Zoom Fix -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <title>Spieltag App</title>
+     <!-- CSS einbinden -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- ---------- Firebase ---------- -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "DEIN_API_KEY",
+            authDomain: "DEIN_PROJECT.firebaseapp.com",
+            databaseURL: "https://DEIN_PROJECT-default-rtdb.firebaseio.com",
+            projectId: "DEIN_PROJECT",
+            storageBucket: "DEIN_PROJECT.appspot.com",
+            messagingSenderId: "XXXXX",
+            appId: "XXXXX"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+    </script>
+
+    <!-- ---------- QR Code ---------- -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- ---------- PDF ---------- -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 </head>
+
 <body>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <!-- 🔥 Hier wird deine komplette App dynamisch gerendert -->
+    <div id="app"></div>
 
-<script>
-const firebaseConfig = {
-    apiKey: "AIzaSyDWrzihvhGlpSjwy32rPaWj8gN1C-bb1tA",
-    authDomain: "spieltag-live.firebaseapp.com",
-    databaseURL: "https://spieltag-live-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "spieltag-live",
-    storageBucket: "spieltag-live.firebasestorage.app",
-    messagingSenderId: "795909118327",
-    appId: "1:795909118327:web:3d425dc06649ef52086972",
-    measurementId: "G-SX0FFJ564Y"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-</script>
-
-<!-- QR-Code -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-<!-- PDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<!-- App -->
-<script src="app.js"></script>
+    <!-- ---------- DEIN GESAMTER JAVASCRIPT CODE ---------- -->
+    <script src="app.js"></script>
 
 </body>
 </html>

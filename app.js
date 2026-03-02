@@ -8,7 +8,8 @@ let timer=0;
 let timerInterval=null;
 let status="spiel";
 let joinTime = Date.now();
-
+let deviceId = null;
+let deviceActive = true;
 let sessionId=null;
 let rolle="master";
 let qrScreenAktiv = false;
@@ -199,7 +200,7 @@ function registriereGeraet(){
 
     if(!sessionId) return;
 
-    const deviceId = localStorage.getItem("deviceId") 
+    deviceId = localStorage.getItem("deviceId")
         || Math.random().toString(36).substring(2,9);
 
     localStorage.setItem("deviceId", deviceId);
@@ -207,8 +208,15 @@ function registriereGeraet(){
     const ref = db.ref("sessions/"+sessionId+"/devices/"+deviceId);
 
     ref.set({
-        rolle: rolle,
-        lastSeen: Date.now()
+       rolle: rolle,
+       lastSeen: Date.now(),
+       active: true
+    });
+    ref.on("value", (snap)=>{
+       const data = snap.val();
+       if(data){
+       deviceActive = data.active !== false;
+     }
     });
 
     ref.onDisconnect().remove();
@@ -450,40 +458,63 @@ document.body.innerHTML=html;
 }
 
 /* ---------- TORE ---------- */
-function updateLiveSpiele(){
+function updateTorLive(feldIndex, teamKey, delta){
 
-    if(sessionId && navigator.onLine){
-
-        db.ref("sessions/"+sessionId).update({
-            spiele: spiele
-        });
+    if(!deviceActive) {
+        alert("Dieses Gerät wurde deaktiviert");
+        return;
     }
-}
 
+    if(!sessionId || !navigator.onLine) return;
+
+    const spielIndex = aktuellesSpiel - 1;
+
+    const ref = db.ref("sessions/"+sessionId+"/spiele/"+spielIndex+"/felder/"+feldIndex+"/"+teamKey);
+
+    ref.transaction((currentValue) => {
+
+        if(currentValue === null) return 0;
+
+        let neuerWert = currentValue + delta;
+        if(neuerWert < 0) neuerWert = 0;
+
+        return neuerWert;
+
+    }).then((result)=>{
+        if(result.committed){
+            logTor(spielIndex, feldIndex, teamKey, delta);
+        }
+    });
+}
 function plusA(i){
+
     spiele[aktuellesSpiel-1].felder[i].a++;
     speichern();
-    updateLiveSpiele();
-}
 
+    updateTorLive(i, "a", 1);
+}
 function minusA(i){
-    if(spiele[aktuellesSpiel-1].felder[i].a>0)
-        spiele[aktuellesSpiel-1].felder[i].a--;
-    speichern();
-    updateLiveSpiele();
-}
 
+    if(spiele[aktuellesSpiel-1].felder[i].a>0){
+        spiele[aktuellesSpiel-1].felder[i].a--;
+        speichern();
+        updateTorLive(i, "a", -1);
+    }
+}
 function plusB(i){
+
     spiele[aktuellesSpiel-1].felder[i].b++;
     speichern();
-    updateLiveSpiele();
-}
 
+    updateTorLive(i, "b", 1);
+}
 function minusB(i){
-    if(spiele[aktuellesSpiel-1].felder[i].b>0)
+
+    if(spiele[aktuellesSpiel-1].felder[i].b>0){
         spiele[aktuellesSpiel-1].felder[i].b--;
-    speichern();
-    updateLiveSpiele();
+        speichern();
+        updateTorLive(i, "b", -1);
+    }
 }
 
 /* ---------- TIMER ---------- */
@@ -740,8 +771,18 @@ function zeigeDashboard(){
         let html = `<h3>Verbundene Geräte: ${Object.keys(data).length}</h3>`;
 
         Object.entries(data).forEach(([id,info])=>{
-            html += `<div>${id} - ${info.rolle}</div>`;
-        });
+        html += `
+<div style="margin:8px;padding:8px;border:1px solid #ccc;">
+    ${id} - ${info.rolle}
+    <br>
+    Status: ${info.active === false ? "❌ Deaktiviert" : "✅ Aktiv"}
+    <br>
+    <button onclick="toggleDevice('${id}', ${info.active === false})">
+        ${info.active === false ? "Aktivieren" : "Deaktivieren"}
+     </button>
+     </div>
+      `;
+})
 
         let box = document.getElementById("dashboard");
         if(!box){
@@ -771,6 +812,31 @@ window.addEventListener("online", ()=>{
     }
 
 });
+
+/* ---------- Logging Funktion ---------- */
+function logTor(spielIndex, feldIndex, teamKey, delta){
+
+    if(!sessionId) return;
+
+    const logRef = db.ref("sessions/"+sessionId+"/logs").push();
+
+    logRef.set({
+        deviceId: deviceId || "master",
+        timestamp: Date.now(),
+        spiel: spielIndex + 1,
+        feld: feldIndex + 1,
+        team: teamKey,
+        delta: delta
+    });
+}
+
+function toggleDevice(id, aktivieren){
+
+    if(!sessionId) return;
+
+    db.ref("sessions/"+sessionId+"/devices/"+id+"/active")
+        .set(aktivieren);
+} 
 
 /* ---------- START ---------- */
 window.onload=function(){
