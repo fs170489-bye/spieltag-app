@@ -43,6 +43,7 @@ function erstelleSession(){
         spiele: spiele,
         teamA: teamA,
         teamB: teamB,
+        modus: modus, 
         aktuellesSpiel: aktuellesSpiel,
         gestarteteSpiele: gestarteteSpiele,
         status: "spiel"
@@ -114,6 +115,7 @@ function starteLiveListener(){
 
         teamA = data.teamA || "";
         teamB = data.teamB || "";
+        modus = data.modus || "";
         spiele = data.spiele || [];
         aktuellesSpiel = data.aktuellesSpiel ?? 1;
         gestarteteSpiele = data.gestarteteSpiele || [false,false,false];
