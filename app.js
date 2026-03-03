@@ -388,6 +388,11 @@ function startSpieltag(){
 /* ---------- SPIEL ---------- */
 function ladeSpiel(){
 
+    if(!spiele || !spiele.length || !spiele[aktuellesSpiel-1]){
+    console.log("Spiele noch nicht bereit");
+    return;
+}
+
 let paarungen=getPaarungen();
 let z=berechneZwischenstand();
 let hinweis = "";
