@@ -84,6 +84,8 @@ function zeigeQRStartseite(){
 
 function starteLiveListener(){
 
+    alert("LiveListener gestartet");
+
     if(!sessionId) return;
 
     if(liveRef){
@@ -97,6 +99,8 @@ function starteLiveListener(){
     registriereGeraet();
 
     liveRef.on("value", (snapshot)=>{
+
+        alert("Snapshot empfangen");
 
         let data = snapshot.val();
 
