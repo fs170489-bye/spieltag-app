@@ -113,12 +113,13 @@ function starteLiveListener(){
             return;
         }
 
-        teamA = data.teamA || "";
-        teamB = data.teamB || "";
-        modus = data.modus || "";
-        spiele = data.spiele || [];
-        aktuellesSpiel = data.aktuellesSpiel ?? 1;
-        gestarteteSpiele = data.gestarteteSpiele || [false,false,false];
+          if(data.teamA) teamA = data.teamA;
+          if(data.teamB) teamB = data.teamB;
+          if(data.modus) modus = data.modus;   
+
+          if(data.spiele) spiele = data.spiele;
+          if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
+          if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
 
         if(data.status === "ergebnis"){
             zeigeErgebnis();
