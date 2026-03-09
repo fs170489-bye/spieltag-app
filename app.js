@@ -38,6 +38,8 @@ function erstelleSession(){
     // Neue Session ID
     sessionId = Math.random().toString(36).substring(2,8);
 
+    console.log("Neue Session:", sessionId);
+
     // 🔥 Session in Firebase erstellen
     db.ref("sessions/"+sessionId).set({
         spiele: spiele,
@@ -63,24 +65,37 @@ function erstelleSession(){
 let liveRef = null;
 
 function zeigeQRStartseite(){
+
+    if(!sessionId){
+        alert("FEHLER: SessionID fehlt");
+        console.error("SessionID fehlt beim QR erzeugen");
+        return;
+    }
+
     qrScreenAktiv = true;
 
-    // Nur Master darf QR sehen
-    if(rolle && rolle !== "master"){
+    if(rolle !== "master"){
         ladeSpiel();
         return;
     }
-console.log("QR SessionID:", sessionId);
-    let url = location.origin + location.pathname + "?session=" + sessionId;
+
+    const url = location.origin + location.pathname + "?session=" + sessionId;
+
+    console.log("QR URL:", url);
 
     document.body.innerHTML = `
         <h1>Counter verbinden</h1>
         <div id="qrcode"></div>
+        <p>Session: ${sessionId}</p>
         <br>
         <button onclick="qrScreenAktiv=false; ladeSpiel()">Weiter zum Spiel</button>
     `;
 
-    new QRCode(document.getElementById("qrcode"), url);
+    new QRCode(document.getElementById("qrcode"), {
+        text: url,
+        width: 220,
+        height: 220
+    });
 }
 
 function starteLiveListener(){
