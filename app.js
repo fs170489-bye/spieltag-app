@@ -67,36 +67,27 @@ let liveRef = null;
 function zeigeQRStartseite(){
 
     if(!sessionId){
-        alert("FEHLER: SessionID fehlt!");
+        alert("SessionID fehlt!");
         return;
     }
 
-    qrScreenAktiv = true;
+    const url = window.location.origin +
+                window.location.pathname +
+                "?session=" + sessionId;
 
-    if(rolle !== "master"){
-        ladeSpiel();
-        return;
-    }
-
-       const url = new URL(window.location.href);
-       url.search = "";
-       url.searchParams.set("session", sessionId);
-
-     console.log("QR URL:", url);
-
-      document.body.innerHTML = `
+    document.body.innerHTML = `
         <h1>Counter verbinden</h1>
         <div id="qrcode"></div>
-        <p>Session: ${sessionId}</p>
-        <br>
-        <button onclick="qrScreenAktiv=false; ladeSpiel()">Weiter zum Spiel</button>
+        <p><b>Session:</b> ${sessionId}</p>
+        <p style="font-size:12px">${url}</p>
+        <button onclick="ladeSpiel()">Weiter</button>
     `;
 
-   new QRCode(document.getElementById("qrcode"), {
-    text: url.toString(),
-    width: 220,
-    height: 220
-});
+    new QRCode(document.getElementById("qrcode"), {
+        text: url,
+        width: 220,
+        height: 220
+    });
 }
 
 function starteLiveListener(){
@@ -872,7 +863,7 @@ window.onload = function(){
         return;
     }
 
-    // 🔥 IMMER frischer Start
+    // IMMER sauberer Start
     localStorage.removeItem("spieltagApp");
 
     zeigeModusAuswahl();
