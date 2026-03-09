@@ -68,19 +68,24 @@ function zeigeQRStartseite(){
 
     if(!sessionId){
         alert("SessionID fehlt!");
+        console.error("SessionID ist leer");
         return;
     }
 
-    const url = window.location.origin +
-                window.location.pathname +
-                "?session=" + sessionId;
+    // 🔥 IMMER vollständige URL
+    const url = window.location.href.split("?")[0] + "?session=" + sessionId;
+
+    console.log("QR URL:", url);
 
     document.body.innerHTML = `
         <h1>Counter verbinden</h1>
         <div id="qrcode"></div>
+
         <p><b>Session:</b> ${sessionId}</p>
         <p style="font-size:12px">${url}</p>
-        <button onclick="ladeSpiel()">Weiter</button>
+
+        <br>
+        <button onclick="ladeSpiel()">Weiter zum Spiel</button>
     `;
 
     new QRCode(document.getElementById("qrcode"), {
