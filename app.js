@@ -41,7 +41,7 @@ function erstelleSession(){
     console.log("Neue Session:", sessionId);
 
     // 🔥 Session in Firebase erstellen
-    db.ref("sessions/"+sessionId).set({
+    db.ref("sessions/"+sessionId).update({
         spiele: spiele,
         teamA: teamA,
         teamB: teamB,
@@ -67,8 +67,7 @@ let liveRef = null;
 function zeigeQRStartseite(){
 
     if(!sessionId){
-        alert("FEHLER: SessionID fehlt");
-        console.error("SessionID fehlt beim QR erzeugen");
+        alert("FEHLER: SessionID fehlt!");
         return;
     }
 
@@ -868,25 +867,13 @@ window.onload = function(){
 
     pruefeSessionJoin();
 
-    // Counter zeigt nur Ladebildschirm → Listener rendert später
+    // Counter wartet nur auf Firebase
     if(rolle === "counter"){
-        document.body.innerHTML = "<h2>Verbinde mit Master…</h2>";
         return;
     }
 
-    // 🔥 Kein Spieltag vorhanden → Startmenü
-    if(!laden() || !spiele || !spiele.length){
-        zeigeModusAuswahl();
-        return;
-    }
+    // 🔥 IMMER frischer Start
+    localStorage.removeItem("spieltagApp");
 
-    // Session abgelaufen
-    if(Date.now() - joinTime > 3*60*60*1000){
-        alert("Session abgelaufen");
-        neuerSpieltag();
-        return;
-    }
-
-    if(status==="ergebnis") zeigeErgebnis();
-    else ladeSpiel();
+    zeigeModusAuswahl();
 }
