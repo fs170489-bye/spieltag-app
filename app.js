@@ -79,11 +79,13 @@ function zeigeQRStartseite(){
         return;
     }
 
-    const url = location.origin + location.pathname + "?session=" + sessionId;
+       const url = new URL(window.location.href);
+       url.search = "";
+       url.searchParams.set("session", sessionId);
 
-    console.log("QR URL:", url);
+     console.log("QR URL:", url);
 
-    document.body.innerHTML = `
+      document.body.innerHTML = `
         <h1>Counter verbinden</h1>
         <div id="qrcode"></div>
         <p>Session: ${sessionId}</p>
@@ -91,11 +93,11 @@ function zeigeQRStartseite(){
         <button onclick="qrScreenAktiv=false; ladeSpiel()">Weiter zum Spiel</button>
     `;
 
-    new QRCode(document.getElementById("qrcode"), {
-        text: url,
-        width: 220,
-        height: 220
-    });
+   new QRCode(document.getElementById("qrcode"), {
+    text: url.toString(),
+    width: 220,
+    height: 220
+});
 }
 
 function starteLiveListener(){
@@ -111,9 +113,6 @@ function starteLiveListener(){
 
     liveRef = db.ref("sessions/"+sessionId);
 
-    // 🔥 HIER FEHLTE ES
-    registriereGeraet();
-
     liveRef.on("value", (snapshot)=>{
 
         alert("Snapshot empfangen");
@@ -128,21 +127,26 @@ function starteLiveListener(){
             return;
         }
 
-          if(data.teamA) teamA = data.teamA;
-          if(data.teamB) teamB = data.teamB;
-          if(data.modus) modus = data.modus;   
+        if(data.teamA) teamA = data.teamA;
+        if(data.teamB) teamB = data.teamB;
+        if(data.modus) modus = data.modus;   
 
-          if(data.spiele) spiele = data.spiele;
-          if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
-          if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
+        if(data.spiele) spiele = data.spiele;
+        if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
+        if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
 
         if(data.status === "ergebnis"){
             zeigeErgebnis();
             return;
         }
 
-        ladeSpiel();
-    });
+        // 🔥 ERST rendern wenn Daten vollständig
+        if(data.spiele && data.spiele.length){
+            ladeSpiel();
+        }
+
+    }); // <- schließt liveRef.on
+
 }
 
 function starteTimerListener(){
@@ -864,22 +868,25 @@ window.onload = function(){
 
     pruefeSessionJoin();
 
-    // 🔥 WICHTIG: Wenn Counter, hier stoppen
+    // Counter zeigt nur Ladebildschirm → Listener rendert später
     if(rolle === "counter"){
+        document.body.innerHTML = "<h2>Verbinde mit Master…</h2>";
         return;
     }
 
-    if(laden()){
-        if(Date.now() - joinTime > 3*60*60*1000){
-            alert("Session abgelaufen");
-            neuerSpieltag();
-            return;
-        }
-
-        if(status==="ergebnis") zeigeErgebnis();
-        else ladeSpiel();
-
-    } else {
+    // 🔥 Kein Spieltag vorhanden → Startmenü
+    if(!laden() || !spiele || !spiele.length){
         zeigeModusAuswahl();
+        return;
     }
+
+    // Session abgelaufen
+    if(Date.now() - joinTime > 3*60*60*1000){
+        alert("Session abgelaufen");
+        neuerSpieltag();
+        return;
+    }
+
+    if(status==="ergebnis") zeigeErgebnis();
+    else ladeSpiel();
 }
