@@ -54,16 +54,16 @@ function erstelleSession(){
     speichern();
 
     // Listener starten
-    starteLiveListener();
-    starteTimerListener();
+    starteLiveListener(sessionId);
+    starteTimerListener(sessionId);
 
     // QR anzeigen
-    zeigeQRStartseite();
-
+    zeigeQRStartseite(sessionId);
+}
 
 let liveRef = null;
 
-function zeigeQRStartseite(){
+function zeigeQRStartseite(sessionId){
 
     if(!sessionId){
         alert("SessionID fehlt!");
@@ -94,11 +94,13 @@ function zeigeQRStartseite(){
     });
 }
 
-function starteLiveListener(){
-alert('foobar');
+function starteLiveListener(sessionId){
     alert("LiveListener gestartet");
 
-    if(!sessionId) return;
+    if(!sessionId) {
+        alert("SessionID fehlt!");
+        return;
+    }
 
     if(liveRef){
         liveRef.off();
@@ -143,7 +145,7 @@ alert('foobar');
 
 }
 
-function starteTimerListener(){
+function starteTimerListener(sessionId){
 
     if(!sessionId) return;
 
