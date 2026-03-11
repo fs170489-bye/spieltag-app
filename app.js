@@ -60,8 +60,7 @@ function erstelleSession(){
     // QR anzeigen
     zeigeQRStartseite();
 
-    alert("Live-Session gestartet: "+sessionId);
-}
+
 let liveRef = null;
 
 function zeigeQRStartseite(){
@@ -96,7 +95,7 @@ function zeigeQRStartseite(){
 }
 
 function starteLiveListener(){
-
+alert('foobar');
     alert("LiveListener gestartet");
 
     if(!sessionId) return;
