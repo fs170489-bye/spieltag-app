@@ -8,8 +8,7 @@ let timer=0;
 let timerInterval=null;
 let status="spiel";
 let joinTime = Date.now();
-let deviceId = null;
-let deviceActive = true;
+
 let sessionId=null;
 let rolle="master";
 let qrScreenAktiv = false;
@@ -43,7 +42,6 @@ function erstelleSession(){
         spiele: spiele,
         teamA: teamA,
         teamB: teamB,
-        modus: modus, 
         aktuellesSpiel: aktuellesSpiel,
         gestarteteSpiele: gestarteteSpiele,
         status: "spiel"
@@ -85,45 +83,49 @@ function zeigeQRStartseite(){
 
 function starteLiveListener(){
 
-    alert("LiveListener gestartet");
-
     if(!sessionId) return;
 
     if(liveRef){
-        liveRef.off();
+        liveRef.off();   // alten Listener komplett entfernen
         liveRef = null;
     }
 
     liveRef = db.ref("sessions/"+sessionId);
 
-    // 🔥 HIER FEHLTE ES
-    registriereGeraet();
-
     liveRef.on("value", (snapshot)=>{
-
-        alert("Snapshot empfangen");
 
         let data = snapshot.val();
 
         if(!data){
+            
             document.body.innerHTML = `
-                <h2>Session beendet</h2>
-                <p>Bitte neuen QR-Code scannen.</p>
+            <h2>Session beendet</h2>
+            <p>Bitte neuen QR-Code scannen.</p>
             `;
-            return;
-        }
 
+            if(liveRef){
+            liveRef.off();
+            liveRef = null;
+          }
+
+           sessionId = null;
+           localStorage.clear();
+           return;
+         }
+          if(data.status === "ergebnis"){
+           zeigeErgebnis();
+           return;
+         }
           if(data.teamA) teamA = data.teamA;
           if(data.teamB) teamB = data.teamB;
-          if(data.modus) modus = data.modus;   
 
           if(data.spiele) spiele = data.spiele;
           if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
           if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
 
-        if(data.status === "ergebnis"){
-            zeigeErgebnis();
-            return;
+          if(data.status === "ergebnis"){
+          zeigeErgebnis();
+          return;
         }
 
         ladeSpiel();
@@ -197,7 +199,7 @@ function registriereGeraet(){
 
     if(!sessionId) return;
 
-    deviceId = localStorage.getItem("deviceId")
+    const deviceId = localStorage.getItem("deviceId") 
         || Math.random().toString(36).substring(2,9);
 
     localStorage.setItem("deviceId", deviceId);
@@ -205,15 +207,8 @@ function registriereGeraet(){
     const ref = db.ref("sessions/"+sessionId+"/devices/"+deviceId);
 
     ref.set({
-       rolle: rolle,
-       lastSeen: Date.now(),
-       active: true
-    });
-    ref.on("value", (snap)=>{
-       const data = snap.val();
-       if(data){
-       deviceActive = data.active !== false;
-     }
+        rolle: rolle,
+        lastSeen: Date.now()
     });
 
     ref.onDisconnect().remove();
@@ -229,20 +224,16 @@ function pruefeSessionJoin(){
         rolle = "counter";
         joinTime = Date.now();
 
-        // URL Parameter entfernen
+        // URL Parameter entfernen (wichtig!)
         window.history.replaceState({}, document.title, window.location.pathname);
 
         speichern();
 
-        // 🔥 ZUERST Lade-Anzeige setzen
-        document.body.innerHTML = "<h2>Verbunden... Lade Spiel...</h2>";
-
-        // 🔥 DANN Listener starten
-        starteLiveListener();
-        starteTimerListener();
-
-        // 🔥 Registrierung erst NACH Listener
         registriereGeraet();
+        starteTimerListener();
+        starteLiveListener();
+
+        document.body.innerHTML = "<h2>Verbunden... Lade Spiel...</h2>";
     }
 }
 function nurMaster(){
@@ -388,11 +379,6 @@ function startSpieltag(){
 /* ---------- SPIEL ---------- */
 function ladeSpiel(){
 
-    if(!spiele || !spiele.length || !spiele[aktuellesSpiel-1]){
-    console.log("Spiele noch nicht bereit");
-    return;
-}
-
 let paarungen=getPaarungen();
 let z=berechneZwischenstand();
 let hinweis = "";
@@ -464,63 +450,40 @@ document.body.innerHTML=html;
 }
 
 /* ---------- TORE ---------- */
-function updateTorLive(feldIndex, teamKey, delta){
+function updateLiveSpiele(){
 
-    if(!deviceActive) {
-        alert("Dieses Gerät wurde deaktiviert");
-        return;
+    if(sessionId && navigator.onLine){
+
+        db.ref("sessions/"+sessionId).update({
+            spiele: spiele
+        });
     }
-
-    if(!sessionId || !navigator.onLine) return;
-
-    const spielIndex = aktuellesSpiel - 1;
-
-    const ref = db.ref("sessions/"+sessionId+"/spiele/"+spielIndex+"/felder/"+feldIndex+"/"+teamKey);
-
-    ref.transaction((currentValue) => {
-
-        if(currentValue === null) return 0;
-
-        let neuerWert = currentValue + delta;
-        if(neuerWert < 0) neuerWert = 0;
-
-        return neuerWert;
-
-    }).then((result)=>{
-        if(result.committed){
-            logTor(spielIndex, feldIndex, teamKey, delta);
-        }
-    });
 }
-function plusA(i){
 
+function plusA(i){
     spiele[aktuellesSpiel-1].felder[i].a++;
     speichern();
-
-    updateTorLive(i, "a", 1);
+    updateLiveSpiele();
 }
+
 function minusA(i){
-
-    if(spiele[aktuellesSpiel-1].felder[i].a>0){
+    if(spiele[aktuellesSpiel-1].felder[i].a>0)
         spiele[aktuellesSpiel-1].felder[i].a--;
-        speichern();
-        updateTorLive(i, "a", -1);
-    }
+    speichern();
+    updateLiveSpiele();
 }
-function plusB(i){
 
+function plusB(i){
     spiele[aktuellesSpiel-1].felder[i].b++;
     speichern();
-
-    updateTorLive(i, "b", 1);
+    updateLiveSpiele();
 }
-function minusB(i){
 
-    if(spiele[aktuellesSpiel-1].felder[i].b>0){
+function minusB(i){
+    if(spiele[aktuellesSpiel-1].felder[i].b>0)
         spiele[aktuellesSpiel-1].felder[i].b--;
-        speichern();
-        updateTorLive(i, "b", -1);
-    }
+    speichern();
+    updateLiveSpiele();
 }
 
 /* ---------- TIMER ---------- */
@@ -777,18 +740,8 @@ function zeigeDashboard(){
         let html = `<h3>Verbundene Geräte: ${Object.keys(data).length}</h3>`;
 
         Object.entries(data).forEach(([id,info])=>{
-        html += `
-<div style="margin:8px;padding:8px;border:1px solid #ccc;">
-    ${id} - ${info.rolle}
-    <br>
-    Status: ${info.active === false ? "❌ Deaktiviert" : "✅ Aktiv"}
-    <br>
-    <button onclick="toggleDevice('${id}', ${info.active === false})">
-        ${info.active === false ? "Aktivieren" : "Deaktivieren"}
-     </button>
-     </div>
-      `;
-})
+            html += `<div>${id} - ${info.rolle}</div>`;
+        });
 
         let box = document.getElementById("dashboard");
         if(!box){
@@ -819,52 +772,18 @@ window.addEventListener("online", ()=>{
 
 });
 
-/* ---------- Logging Funktion ---------- */
-function logTor(spielIndex, feldIndex, teamKey, delta){
-
-    if(!sessionId) return;
-
-    const logRef = db.ref("sessions/"+sessionId+"/logs").push();
-
-    logRef.set({
-        deviceId: deviceId || "master",
-        timestamp: Date.now(),
-        spiel: spielIndex + 1,
-        feld: feldIndex + 1,
-        team: teamKey,
-        delta: delta
-    });
-}
-
-function toggleDevice(id, aktivieren){
-
-    if(!sessionId) return;
-
-    db.ref("sessions/"+sessionId+"/devices/"+id+"/active")
-        .set(aktivieren);
-} 
-
 /* ---------- START ---------- */
-window.onload = function(){
-
+window.onload=function(){
     pruefeSessionJoin();
-
-    // 🔥 WICHTIG: Wenn Counter, hier stoppen
-    if(rolle === "counter"){
-        return;
-    }
-
-    if(laden()){
-        if(Date.now() - joinTime > 3*60*60*1000){
-            alert("Session abgelaufen");
-            neuerSpieltag();
-            return;
-        }
-
-        if(status==="ergebnis") zeigeErgebnis();
-        else ladeSpiel();
-
-    } else {
-        zeigeModusAuswahl();
-    }
+if(laden()){
+    if(Date.now() - joinTime > 3*60*60*1000){
+    alert("Session abgelaufen");
+    neuerSpieltag();
+    return;
+}
+if(status==="ergebnis") zeigeErgebnis();
+else ladeSpiel();
+}else{
+zeigeModusAuswahl();
+}
 }
