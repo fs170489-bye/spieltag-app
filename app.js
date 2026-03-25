@@ -800,6 +800,10 @@ window.addEventListener("online", ()=>{
 window.onload=function(){
     pruefeSessionJoin();
 if(laden()){
+     if(sessionId){
+        starteLiveListener();
+        starteTimerListener();
+    }
     if(Date.now() - joinTime > 3*60*60*1000){
     alert("Session abgelaufen");
     neuerSpieltag();
