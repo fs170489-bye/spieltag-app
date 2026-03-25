@@ -11,6 +11,7 @@ let joinTime = Date.now();
 
 let sessionId=null;
 let rolle="master";
+let qrModus = null; // "counter" oder "viewer"
 let qrScreenAktiv = false;
 
 let spielZeit = 600; // Standard: 10 Minuten
@@ -223,11 +224,12 @@ function pruefeSessionJoin(){
 
     const params = new URLSearchParams(window.location.search);
     const joinSession = params.get("session");
+    const roleParam = params.get("role");
 
     if(joinSession){
 
         sessionId = joinSession;
-        rolle = "counter";
+        rolle = roleParam === "viewer" ? "viewer" : "counter";
         joinTime = Date.now();
 
         // URL Parameter entfernen (wichtig!)
@@ -251,6 +253,41 @@ function nurMaster(){
     return true;
 }
 function zeigeQRCode(){
+
+    let qrModus = null;
+
+function toggleQR(modus){
+
+    if(!sessionId){
+        alert("Erst Live-Session starten");
+        return;
+    }
+
+    let bestehend = document.getElementById("qrContainer");
+
+    // Toggle aus
+    if(bestehend){
+        bestehend.remove();
+        qrModus = null;
+        return;
+    }
+
+    qrModus = modus;
+
+    let url = location.origin + location.pathname + "?session=" + sessionId;
+
+    if(modus === "viewer"){
+        url += "&role=viewer";
+    }
+
+    let div = document.createElement("div");
+    div.id = "qrContainer";
+    div.style.marginTop = "20px";
+
+    document.body.appendChild(div);
+
+    new QRCode(div, url);
+}
 
     if(!sessionId){
         alert("Erst Live-Session starten");
@@ -424,6 +461,11 @@ function ladeSpiel(){
 let paarungen=getPaarungen();
 let z=berechneZwischenstand();
 let hinweis = "";
+let viewerInfo = "";
+
+if(rolle === "viewer"){
+    viewerInfo = `<div style="background:#eee;padding:10px;margin:10px;">👀 Zuschauer-Modus</div>`;
+}
 
 if(aktuellesSpiel === 3 && modus === "twin"){
     hinweis = `
@@ -440,7 +482,7 @@ if(aktuellesSpiel === 3 && modus === "twin"){
 }
 let html=`
 <h1>Spiel ${aktuellesSpiel}</h1>
-${hinweis}
+${viewerInfo}
 
 <div style="background:#e3f2fd;padding:10px;font-weight:bold;">
 Zwischenstand: ${teamA} ${z.pa} : ${z.pb} ${teamB}
@@ -473,6 +515,8 @@ html+=`
 ${paarungen[i].a} --- ${f.a} | ${f.b} --- ${paarungen[i].b}
 </div>
 
+
+${rolle !== "viewer" ? `
 <div style="display:flex;justify-content:space-between;">
 <div>
 <button style="background:green;color:white;font-size:26px;margin:6px;" onclick="plusA(${i})">+</button>
@@ -483,6 +527,7 @@ ${paarungen[i].a} --- ${f.a} | ${f.b} --- ${paarungen[i].b}
 <button style="background:red;color:white;font-size:26px;margin:6px;" onclick="minusB(${i})">-</button>
 </div>
 </div>
+` : ``}
 </div>`;
 });
 
@@ -490,7 +535,8 @@ html+=`
 ${rolle==="master" ? `
     <button onclick="vorherigesSpiel()">Zurück</button>
     <button onclick="naechstesSpiel()">Weiter</button>
-    <button onclick="zeigeQRCode()">QR anzeigen</button>
+    <button onclick="toggleQR('counter')">QR Counter</button>
+    <button onclick="toggleQR('viewer')">QR Zuschauer</button>
     <button onclick="zeigeDashboard()">Dashboard</button>
 ` : ``}
 `;
