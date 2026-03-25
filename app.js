@@ -44,7 +44,8 @@ function erstelleSession(){
         teamB: teamB,
         aktuellesSpiel: aktuellesSpiel,
         gestarteteSpiele: gestarteteSpiele,
-        status: "spiel"
+        status: "spiel",
+        spielZeit: spielZeit
     });
 
     speichern();
