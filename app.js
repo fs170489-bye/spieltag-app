@@ -123,7 +123,22 @@ function starteLiveListener(){
           if(data.teamB) teamB = data.teamB;
 
           if(data.spiele) spiele = data.spiele;
-          if(data.aktuellesSpiel !== undefined) aktuellesSpiel = data.aktuellesSpiel;
+          if(data.aktuellesSpiel !== undefined){
+
+          if(aktuellesSpiel !== data.aktuellesSpiel){
+
+          aktuellesSpiel = data.aktuellesSpiel;
+
+          // 🔥 WICHTIG: Timer reset bei Spielwechsel
+          timer = spielZeit;
+
+         // 🔥 ganz wichtig: alte Anzeige killen
+         if(timerInterval){
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }
+}
           if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
 
           if(data.status === "ergebnis"){
@@ -144,6 +159,11 @@ function starteTimerListener(){
         let data = snap.val();
         if(!data) return;
 
+        // 🔥 Schutz: wenn Spiel gewechselt wurde → Timer sauber setzen
+        if(timer > spielZeit){
+        timer = spielZeit;
+        }
+
         // altes Interval stoppen
         if(timerInterval){
             clearInterval(timerInterval);
@@ -151,7 +171,7 @@ function starteTimerListener(){
         }
 
         // Zeit setzen
-        timer = data.value || 0;
+        timer = data.value ?? spielZeit;
 
         let el = document.getElementById("zeit");
         if(el){
@@ -170,7 +190,7 @@ function starteTimerListener(){
             timerInterval = setInterval(()=>{
 
                 if(data.start){
-                timer = (data.value || spielZeit) - Math.floor((Date.now() - data.start)/1000);
+                timer = data.value - Math.floor((Date.now() - data.start)/1000);
                 } else {
                 timer = data.value || spielZeit;
                 }
@@ -187,6 +207,7 @@ function starteTimerListener(){
                 }
 
             },1000);
+            ladeSpiel();
 
         }
 
@@ -644,7 +665,7 @@ function resetTimer(){
 
     clearInterval(timerInterval);
     timerInterval=null;
-    timer = spielZeit;
+    timer = spielzeit;
     if(sessionId){
     db.ref("sessions/"+sessionId+"/timer").set({
         start: Date.now(),
@@ -679,9 +700,18 @@ function naechstesSpiel(){
 
     if(!nurMaster()) return;
 
-    timer = 0;
+    timer = spielZeit;
     clearInterval(timerInterval);
     timerInterval = null;
+
+        // 🔥 NEU: Timer global resetten
+    if(sessionId){
+        db.ref("sessions/"+sessionId+"/timer").set({
+            start: Date.now(),
+            running: false,
+            value: spielZeit
+        });
+    }
 
     if(aktuellesSpiel < 3){
 
