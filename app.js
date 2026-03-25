@@ -85,7 +85,6 @@ function zeigeQRStartseite(){
 function starteLiveListener(){
 
     if(!sessionId) return;
-    if(data.spielZeit) spielZeit = data.spielZeit;
 
     if(liveRef){
         liveRef.off();   // alten Listener komplett entfernen
@@ -97,6 +96,7 @@ function starteLiveListener(){
     liveRef.on("value", (snapshot)=>{
 
         let data = snapshot.val();
+        if(data.spielZeit) spielZeit = data.spielZeit;
 
         if(!data){
             
@@ -489,7 +489,8 @@ function plusA(i){
 function minusA(i){
     if(!timerInterval && rolle !== "master") return;
 
-    spiele[aktuellesSpiel-1].felder[i].a++;
+    if(spiele[aktuellesSpiel-1].felder[i].a>0)
+        spiele[aktuellesSpiel-1].felder[i].a--;
     speichern();
     updateLiveSpiele();
 }
@@ -497,7 +498,7 @@ function minusA(i){
 function plusB(i){
     if(!timerInterval && rolle !== "master") return;
 
-    spiele[aktuellesSpiel-1].felder[i].a++;
+    spiele[aktuellesSpiel-1].felder[i].b++;
     speichern();
     updateLiveSpiele();
 }
@@ -505,7 +506,8 @@ function plusB(i){
 function minusB(i){
     if(!timerInterval && rolle !== "master") return;
 
-    spiele[aktuellesSpiel-1].felder[i].a++;
+    if(spiele[aktuellesSpiel-1].felder[i].b>0)
+        spiele[aktuellesSpiel-1].felder[i].b--;
     speichern();
     updateLiveSpiele();
 }
