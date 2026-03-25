@@ -537,6 +537,9 @@ function minusB(i){
 function startTimer(){
 
     if(!nurMaster()) return;
+     if(timer <= 0 || timer > spielZeit){
+        timer = spielZeit;
+    }
 
     gestarteteSpiele[aktuellesSpiel-1]=true;
 
@@ -548,7 +551,7 @@ function startTimer(){
         db.ref("sessions/"+sessionId+"/timer").set({
             start: Date.now(),
             running: true,
-            value: spielZeit
+            value: timer
         });
     }
 
@@ -608,7 +611,7 @@ function resetTimer(){
 
     clearInterval(timerInterval);
     timerInterval=null;
-    timer=0;
+    timer = spielZeit;
     if(sessionId){
     db.ref("sessions/"+sessionId+"/timer").set({
         start: Date.now(),
