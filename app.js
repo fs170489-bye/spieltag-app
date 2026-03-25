@@ -190,7 +190,7 @@ function starteTimerListener(){
         }
 
         // 🔥 WICHTIG: End-Signal hier global auslösen
-        if(!data.running && timer >= spielZeit){
+        if(!data.running && timer <= 0){
 
             signalTonAbspielen();
             if(navigator.vibrate){
@@ -379,7 +379,6 @@ function startSpieltag(){
 
     teamA=document.getElementById("teamA").value;
     teamB=document.getElementById("teamB").value;
-    spielZeit = parseInt(document.getElementById("spielZeitSelect").value);
 
     let zeitInput = document.getElementById("spielZeitInput");
 
@@ -575,7 +574,7 @@ function startTimer(){
         if(el){
             el.innerText=formatZeit(timer);
 
-            if(timer>=spielZeit-30){
+            if(timer <= 30){
                 el.style.color=(timer%2===0)?"red":"black";
             }else{
                 el.style.color="black";
@@ -590,7 +589,7 @@ function startTimer(){
     if(sessionId){
         db.ref("sessions/"+sessionId+"/timer").update({
             running:false,
-            value: spielZeit
+            value: timer
         });
     }
 
@@ -611,7 +610,7 @@ function pauseTimer(){
     if(sessionId){
         db.ref("sessions/"+sessionId+"/timer").update({
             running:false,
-            value: spielZeit
+            value: timer
         });
     }
 }
