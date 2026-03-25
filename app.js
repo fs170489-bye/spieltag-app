@@ -252,9 +252,6 @@ function nurMaster(){
     }
     return true;
 }
-function zeigeQRCode(){
-
-    let qrModus = null;
 
 function toggleQR(modus){
 
@@ -287,25 +284,6 @@ function toggleQR(modus){
     document.body.appendChild(div);
 
     new QRCode(div, url);
-}
-
-    if(!sessionId){
-        alert("Erst Live-Session starten");
-        return;
-    }
-
-    let url = location.origin + location.pathname + "?session=" + sessionId;
-
-    let qrDiv = document.getElementById("qrcode");
-    if(!qrDiv){
-        qrDiv=document.createElement("div");
-        qrDiv.id="qrcode";
-        document.body.appendChild(qrDiv);
-    }else{
-        qrDiv.innerHTML="";
-    }
-
-    new QRCode(qrDiv,url);
 }
 
 /* ---------- SIGNAL ---------- */
@@ -620,7 +598,7 @@ function startTimer(){
         if(el){
             el.innerText=formatZeit(timer);
 
-            if(timer <= 30){
+            if(timer <= 60){
                 el.style.color=(timer%2===0)?"red":"black";
             }else{
                 el.style.color="black";
