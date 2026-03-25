@@ -367,7 +367,7 @@ document.body.innerHTML=`
 
 <label>Spielzeit (in Minuten):</label>
 <br>
-<input id="spielZeitInput" type="number" value="10" min="1" style="font-size:22px; padding:10px; width:120px; text-align:center;">
+<input id="spielZeitInput" type="number" value="10">
 
 <br><br>
 
@@ -381,8 +381,14 @@ function startSpieltag(){
     teamB=document.getElementById("teamB").value;
     spielZeit = parseInt(document.getElementById("spielZeitSelect").value);
 
-    let minuten = parseInt(document.getElementById("spielZeitInput").value) || 10;
-    spielZeit = minuten * 60;
+    let zeitInput = document.getElementById("spielZeitInput");
+
+    let minuten = 10;
+    if(zeitInput){
+    minuten = parseInt(zeitInput.value) || 10;
+}
+
+spielZeit = minuten * 60;
 
     spiele=[];
     gestarteteSpiele=[false,false,false];
