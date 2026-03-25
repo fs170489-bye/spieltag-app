@@ -168,7 +168,11 @@ function starteTimerListener(){
 
             timerInterval = setInterval(()=>{
 
+                if(data.start){
                 timer = (data.value || spielZeit) - Math.floor((Date.now() - data.start)/1000);
+                } else {
+                timer = data.value || spielZeit;
+                }
 
                 let el = document.getElementById("zeit");
                 if(el){
