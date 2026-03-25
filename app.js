@@ -154,7 +154,7 @@ function starteTimerListener(){
 
         let el = document.getElementById("zeit");
         if(el){
-            el.innerText = formatZeit(spielZeit - timer);
+            el.innerText = formatZeit(timer);
 
             if(spielZeit - timer <= 30){
                 el.style.color = (timer%2===0) ? "red" : "black";
@@ -168,13 +168,13 @@ function starteTimerListener(){
 
             timerInterval = setInterval(()=>{
 
-                timer = Math.floor((Date.now() - data.start)/1000) + (data.value || 0);
+                timer = (data.value || spielZeit) - Math.floor((Date.now() - data.start)/1000);
 
                 let el = document.getElementById("zeit");
                 if(el){
-                    el.innerText = formatZeit(spielZeit - timer);
+                    el.innerText = formatZeit(timer);
 
-                    if(spielZeit - timer <= 30){
+                    if(timer <= 60){
                         el.style.color = (timer%2===0) ? "red" : "black";
                     } else {
                         el.style.color = "black";
@@ -361,13 +361,9 @@ document.body.innerHTML=`
 
 <br><br>
 
-<label>Spielzeit:</label>
+<label>Spielzeit (in Minuten):</label>
 <br>
-<select id="spielZeitSelect">
-    <option value="300">5 Minuten</option>
-    <option value="600" selected>10 Minuten</option>
-    <option value="900">15 Minuten</option>
-</select>
+<input id="spielZeitInput" type="number" value="10" min="1" style="font-size:22px; padding:10px; width:120px; text-align:center;">
 
 <br><br>
 
@@ -380,6 +376,9 @@ function startSpieltag(){
     teamA=document.getElementById("teamA").value;
     teamB=document.getElementById("teamB").value;
     spielZeit = parseInt(document.getElementById("spielZeitSelect").value);
+
+    let minuten = parseInt(document.getElementById("spielZeitInput").value) || 10;
+    spielZeit = minuten * 60;
 
     spiele=[];
     gestarteteSpiele=[false,false,false];
@@ -439,15 +438,20 @@ Zwischenstand: ${teamA} ${z.pa} : ${z.pb} ${teamB}
 </div>
 
 ${rolle==="master" ? `
-<div style="display:flex;gap:8px;justify-content:center;margin:10px;">
-    <button onclick="startTimer()">Start</button>
-    <button onclick="pauseTimer()">Pause</button>
-    <button onclick="resetTimer()">Reset</button>
-    <button onclick="setTestZeit()">10s Test</button>
+<div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin:10px;">
+    
+    <div style="display:flex;gap:8px;">
+        <button onclick="startTimer()">Start</button>
+        <button onclick="pauseTimer()">Pause</button>
+        <button onclick="resetTimer()">Reset</button>
+    </div>
+
+    <button style="font-size:18px;padding:8px 14px;" onclick="setTestZeit()">10s Test</button>
+
 </div>
 ` : ``}
 
-<h2 id="zeit" style="text-align:center;">${formatZeit(spielZeit - timer)}</h2>
+<h2 id="zeit" style="text-align:center;">${formatZeit(timer)}</h2>
 <hr>
 `;
 
@@ -544,7 +548,7 @@ function startTimer(){
         db.ref("sessions/"+sessionId+"/timer").set({
             start: Date.now(),
             running: true,
-            value: timer
+            value: spielZeit
         });
     }
 
@@ -552,7 +556,7 @@ function startTimer(){
 
     timerInterval=setInterval(()=>{
 
-        timer++;
+        timer--;
 
         let el=document.getElementById("zeit");
         if(el){
@@ -565,7 +569,7 @@ function startTimer(){
             }
         }
 
-        if(timer>=spielZeit){
+        if(timer<=0){
 
     clearInterval(timerInterval);
     timerInterval=null;
@@ -594,7 +598,7 @@ function pauseTimer(){
     if(sessionId){
         db.ref("sessions/"+sessionId+"/timer").update({
             running:false,
-            value: timer
+            value: spielZeit
         });
     }
 }
