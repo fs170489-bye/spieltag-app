@@ -154,9 +154,9 @@ function starteTimerListener(){
 
         let el = document.getElementById("zeit");
         if(el){
-            el.innerText = formatZeit(timer);
+            el.innerText = formatZeit(spielZeit - timer);
 
-            if(timer >= spielZeit-30){
+            if(spielZeit - timer <= 30){
                 el.style.color = (timer%2===0) ? "red" : "black";
             } else {
                 el.style.color = "black";
@@ -172,9 +172,9 @@ function starteTimerListener(){
 
                 let el = document.getElementById("zeit");
                 if(el){
-                    el.innerText = formatZeit(timer);
+                    el.innerText = formatZeit(spielZeit - timer);
 
-                    if(timer >= spielZeit-30){
+                    if(spielZeit - timer <= 30){
                         el.style.color = (timer%2===0) ? "red" : "black";
                     } else {
                         el.style.color = "black";
@@ -278,6 +278,9 @@ function signalTonAbspielen(){
 
 /* ---------- ZEITFORMAT ---------- */
 function formatZeit(s){
+
+    s = Math.max(0, s);   // 🔥 DAS HIER IST DER FIX
+
     let m=Math.floor(s/60);
     let sec=s%60;
     return String(m).padStart(2,"0")+":"+String(sec).padStart(2,"0");
@@ -352,9 +355,22 @@ document.body.innerHTML=`
 function zeigeTeamEingabe(){
 document.body.innerHTML=`
 <h1>Teams</h1>
+
 <input id="teamA" placeholder="Team A">
 <input id="teamB" placeholder="Team B">
+
 <br><br>
+
+<label>Spielzeit:</label>
+<br>
+<select id="spielZeitSelect">
+    <option value="300">5 Minuten</option>
+    <option value="600" selected>10 Minuten</option>
+    <option value="900">15 Minuten</option>
+</select>
+
+<br><br>
+
 <button onclick="zeigeModusAuswahl()">Zurück</button>
 <button onclick="startSpieltag()">Start</button>`;
 }
@@ -363,6 +379,7 @@ function startSpieltag(){
 
     teamA=document.getElementById("teamA").value;
     teamB=document.getElementById("teamB").value;
+    spielZeit = parseInt(document.getElementById("spielZeitSelect").value);
 
     spiele=[];
     gestarteteSpiele=[false,false,false];
@@ -430,7 +447,7 @@ ${rolle==="master" ? `
 </div>
 ` : ``}
 
-<h2 id="zeit" style="text-align:center;">${formatZeit(timer)}</h2>
+<h2 id="zeit" style="text-align:center;">${formatZeit(spielZeit - timer)}</h2>
 <hr>
 `;
 
@@ -801,7 +818,7 @@ window.addEventListener("online", ()=>{
 /* ---------- START ---------- */
 window.onload=function(){
     pruefeSessionJoin();
-if(laden()){
+     if(laden() && sessionId){
      if(sessionId){
         starteLiveListener();
         starteTimerListener();
@@ -814,6 +831,6 @@ if(laden()){
 if(status==="ergebnis") zeigeErgebnis();
 else ladeSpiel();
 }else{
-zeigeModusAuswahl();
+   zeigeModusAuswahl();
 }
 }
