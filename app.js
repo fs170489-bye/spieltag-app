@@ -13,7 +13,7 @@ let sessionId=null;
 let rolle="master";
 let qrScreenAktiv = false;
 
-const TESTZEIT = 10;
+let spielZeit = 600; // Standard: 10 Minuten
 
 /* ---------- SESSION ---------- */
 function erstelleSession(){
@@ -84,6 +84,7 @@ function zeigeQRStartseite(){
 function starteLiveListener(){
 
     if(!sessionId) return;
+    if(data.spielZeit) spielZeit = data.spielZeit;
 
     if(liveRef){
         liveRef.off();   // alten Listener komplett entfernen
@@ -154,7 +155,7 @@ function starteTimerListener(){
         if(el){
             el.innerText = formatZeit(timer);
 
-            if(timer >= TESTZEIT-30){
+            if(timer >= spielZeit-30){
                 el.style.color = (timer%2===0) ? "red" : "black";
             } else {
                 el.style.color = "black";
@@ -172,7 +173,7 @@ function starteTimerListener(){
                 if(el){
                     el.innerText = formatZeit(timer);
 
-                    if(timer >= TESTZEIT-30){
+                    if(timer >= spielZeit-30){
                         el.style.color = (timer%2===0) ? "red" : "black";
                     } else {
                         el.style.color = "black";
@@ -184,7 +185,7 @@ function starteTimerListener(){
         }
 
         // 🔥 WICHTIG: End-Signal hier global auslösen
-        if(!data.running && timer >= TESTZEIT){
+        if(!data.running && timer >= spielZeit){
 
             signalTonAbspielen();
             if(navigator.vibrate){
@@ -375,6 +376,21 @@ function startSpieltag(){
     speichern();
     erstelleSession();         
 }
+/*-----------Neu------*/
+function setTestZeit(){
+
+    if(!nurMaster()) return;
+
+    spielZeit = 10;
+
+    if(sessionId){
+        db.ref("sessions/"+sessionId).update({
+            spielZeit: spielZeit
+        });
+    }
+
+    alert("Testzeit: 10 Sekunden aktiviert");
+}
 
 /* ---------- SPIEL ---------- */
 function ladeSpiel(){
@@ -409,6 +425,7 @@ ${rolle==="master" ? `
     <button onclick="startTimer()">Start</button>
     <button onclick="pauseTimer()">Pause</button>
     <button onclick="resetTimer()">Reset</button>
+    <button onclick="setTestZeit()">10s Test</button>
 </div>
 ` : ``}
 
@@ -461,27 +478,33 @@ function updateLiveSpiele(){
 }
 
 function plusA(i){
+    if(!timerInterval && rolle !== "master") return;
+
     spiele[aktuellesSpiel-1].felder[i].a++;
     speichern();
     updateLiveSpiele();
 }
 
 function minusA(i){
-    if(spiele[aktuellesSpiel-1].felder[i].a>0)
-        spiele[aktuellesSpiel-1].felder[i].a--;
+    if(!timerInterval && rolle !== "master") return;
+
+    spiele[aktuellesSpiel-1].felder[i].a++;
     speichern();
     updateLiveSpiele();
 }
 
 function plusB(i){
-    spiele[aktuellesSpiel-1].felder[i].b++;
+    if(!timerInterval && rolle !== "master") return;
+
+    spiele[aktuellesSpiel-1].felder[i].a++;
     speichern();
     updateLiveSpiele();
 }
 
 function minusB(i){
-    if(spiele[aktuellesSpiel-1].felder[i].b>0)
-        spiele[aktuellesSpiel-1].felder[i].b--;
+    if(!timerInterval && rolle !== "master") return;
+
+    spiele[aktuellesSpiel-1].felder[i].a++;
     speichern();
     updateLiveSpiele();
 }
@@ -515,14 +538,14 @@ function startTimer(){
         if(el){
             el.innerText=formatZeit(timer);
 
-            if(timer>=TESTZEIT-30){
+            if(timer>=spielZeit-30){
                 el.style.color=(timer%2===0)?"red":"black";
             }else{
                 el.style.color="black";
             }
         }
 
-        if(timer>=TESTZEIT){
+        if(timer>=spielZeit){
 
     clearInterval(timerInterval);
     timerInterval=null;
@@ -530,7 +553,7 @@ function startTimer(){
     if(sessionId){
         db.ref("sessions/"+sessionId+"/timer").update({
             running:false,
-            value: TESTZEIT
+            value: spielZeit
         });
     }
 
