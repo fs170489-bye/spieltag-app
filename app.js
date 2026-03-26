@@ -302,9 +302,17 @@ function toggleQR(modus){
     div.id = "qrContainer";
     div.style.marginTop = "20px";
 
+    div.style.textAlign = "center";
     document.body.appendChild(div);
 
     new QRCode(div, url);
+    let info = document.createElement("div");
+    info.innerText = modus === "viewer"
+    ? "Zuschauer einladen"
+    : "Counter verbinden";
+
+    info.style.marginTop = "10px";
+    div.appendChild(info);
 }
 
 /* ---------- SIGNAL ---------- */
@@ -537,6 +545,8 @@ ${rolle==="master" ? `
     <button onclick="toggleQR('counter')">QR Counter</button>
     <button onclick="toggleQR('viewer')">QR Zuschauer</button>
     <button onclick="zeigeDashboard()">Dashboard</button>
+` : rolle==="viewer" ? `
+    <button onclick="toggleQR('viewer')">Zuschauer teilen</button>
 ` : ``}
 `;
 document.body.innerHTML=html;
