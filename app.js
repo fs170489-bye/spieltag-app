@@ -13,6 +13,7 @@ let sessionId=null;
 let rolle="master";
 let qrModus = null; // "counter" oder "viewer"
 let qrScreenAktiv = false;
+let counterGesperrt = false;
 
 let spielZeit = 600; // Standard: 10 Minuten
 
@@ -46,7 +47,8 @@ function erstelleSession(){
         aktuellesSpiel: aktuellesSpiel,
         gestarteteSpiele: gestarteteSpiele,
         status: "spiel",
-        spielZeit: spielZeit
+        spielZeit: spielZeit,
+        counterGesperrt: false
     });
 
     speichern();
@@ -140,6 +142,10 @@ function starteLiveListener(){
     }
 }
           if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
+
+          if(data.counterGesperrt !== undefined){
+          counterGesperrt = data.counterGesperrt;
+         }
 
           if(data.status === "ergebnis"){
           zeigeErgebnis();
@@ -474,6 +480,10 @@ if(rolle === "viewer"){
     viewerInfo = `<div style="background:#eee;padding:10px;margin:10px;">👀 Zuschauer-Modus</div>`;
 }
 
+if(counterGesperrt && rolle === "counter"){
+    viewerInfo = `<div style="background:#ffcccc;padding:10px;margin:10px;">🔒 Counter gesperrt</div>`;
+}
+
 if(aktuellesSpiel === 3 && modus === "twin"){
     hinweis = `
         <div style="
@@ -523,7 +533,7 @@ ${paarungen[i].a} --- ${f.a} | ${f.b} --- ${paarungen[i].b}
 </div>
 
 
-${rolle !== "viewer" ? `
+${rolle !== "viewer" && !counterGesperrt ? `
 <div style="display:flex;justify-content:space-between;">
 <div>
 <button style="background:green;color:white;font-size:26px;margin:6px;" onclick="plusA(${i})">+</button>
@@ -545,7 +555,10 @@ ${rolle==="master" ? `
     <button onclick="toggleQR('counter')">QR Counter</button>
     <button onclick="toggleQR('viewer')">QR Zuschauer</button>
     <button onclick="zeigeDashboard()">Dashboard</button>
-` : rolle==="viewer" ? `
+    <button onclick="toggleCounterSperre()">
+    ${counterGesperrt ? "Counter entsperren" : "Counter sperren"}
+    </button>
+    ` : rolle==="viewer" ? `
     <button onclick="toggleQR('viewer')">Zuschauer teilen</button>
 ` : ``}
 `;
@@ -876,6 +889,20 @@ function zeigeDashboard(){
         box.innerHTML = html;
     });
 }
+
+function toggleCounterSperre(){
+
+    if(!nurMaster()) return;
+
+    counterGesperrt = !counterGesperrt;
+
+    if(sessionId){
+        db.ref("sessions/"+sessionId).update({
+            counterGesperrt: counterGesperrt
+        });
+    }
+}
+
 function springeZuSpiel(n){aktuellesSpiel=n;ladeSpiel();}
 
 /* ---------- ONLINE / OFFLINE ---------- */
