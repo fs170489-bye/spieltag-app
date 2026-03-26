@@ -8,12 +8,13 @@ let timer=0;
 let timerInterval=null;
 let status="spiel";
 let joinTime = Date.now();
-
 let sessionId=null;
 let rolle="master";
 let qrModus = null; // "counter" oder "viewer"
 let qrScreenAktiv = false;
 let counterGesperrt = false;
+let counterGesperrtListe = {};
+let deviceId = localStorage.getItem("deviceId") || null;
 
 let spielZeit = 600; // Standard: 10 Minuten
 
@@ -143,8 +144,8 @@ function starteLiveListener(){
 }
           if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
 
-          if(data.counterGesperrt !== undefined){
-          counterGesperrt = data.counterGesperrt;
+         if(data.counterGesperrtListe){
+         counterGesperrtListe = data.counterGesperrtListe;
          }
 
           if(data.status === "ergebnis"){
@@ -233,7 +234,7 @@ function registriereGeraet(){
 
     if(!sessionId) return;
 
-    const deviceId = localStorage.getItem("deviceId") 
+    deviceId = localStorage.getItem("deviceId") 
         || Math.random().toString(36).substring(2,9);
 
     localStorage.setItem("deviceId", deviceId);
@@ -338,6 +339,13 @@ function formatZeit(s){
     let m=Math.floor(s/60);
     let sec=s%60;
     return String(m).padStart(2,"0")+":"+String(sec).padStart(2,"0");
+}
+
+function formatTeamName(name){
+
+    if(name.length <= 10) return name;
+
+    return name.substring(0,10) + "<br>" + name.substring(10);
 }
 
 /* ---------- SPEICHERN ---------- */
@@ -476,11 +484,25 @@ let z=berechneZwischenstand();
 let hinweis = "";
 let viewerInfo = "";
 
+if(modus === "twin" && aktuellesSpiel === 3){
+    hinweis = `
+        <div style="
+            background:#ffeeba;
+            padding:12px;
+            margin:10px 0;
+            font-weight:bold;
+            border-radius:8px;
+        ">
+            ⚠️ Vor Spielbeginn 2–4 Spieler tauschen!
+        </div>
+    `;
+}
+
 if(rolle === "viewer"){
     viewerInfo = `<div style="background:#eee;padding:10px;margin:10px;">👀 Zuschauer-Modus</div>`;
 }
 
-if(counterGesperrt && rolle === "counter"){
+if(counterGesperrtListe && counterGesperrtListe[deviceId] && rolle === "counter"){
     viewerInfo = `<div style="background:#ffcccc;padding:10px;margin:10px;">🔒 Counter gesperrt</div>`;
 }
 
@@ -528,12 +550,12 @@ html+=`
 <div style="border:1px solid #ccc;padding:12px;margin:10px;">
 <h3>Feld ${i+1}</h3>
 
-<div style="font-size:22px;text-align:center;font-weight:bold;">
-${paarungen[i].a} --- ${f.a} | ${f.b} --- ${paarungen[i].b}
+<div style="font-size:20px;text-align:center;font-weight:bold;line-height:1.2;">
+${formatTeamName(paarungen[i].a)} --- ${f.a} | ${f.b} --- ${formatTeamName(paarungen[i].b)}
 </div>
 
 
-${rolle !== "viewer" && !counterGesperrt ? `
+${rolle !== "viewer" && !(counterGesperrtListe && counterGesperrtListe[deviceId])? `
 <div style="display:flex;justify-content:space-between;">
 <div>
 <button style="background:green;color:white;font-size:26px;margin:6px;" onclick="plusA(${i})">+</button>
@@ -894,11 +916,14 @@ function toggleCounterSperre(){
 
     if(!nurMaster()) return;
 
-    counterGesperrt = !counterGesperrt;
+    if(!deviceId) return;
+
+    // aktuellen Counter toggeln
+    counterGesperrtListe[deviceId] = !counterGesperrtListe[deviceId];
 
     if(sessionId){
         db.ref("sessions/"+sessionId).update({
-            counterGesperrt: counterGesperrt
+            counterGesperrtListe: counterGesperrtListe
         });
     }
 }
