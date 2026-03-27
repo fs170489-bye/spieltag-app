@@ -343,9 +343,16 @@ function formatZeit(s){
 
 function formatTeamName(name){
 
-    if(name.length <= 10) return name;
+    let parts = name.split(" ");
 
-    return name.substring(0,10) + "<br>" + name.substring(10);
+    if(parts.length === 1){
+        // fallback bei einem Wort
+        return name.length > 10
+            ? name.substring(0,10) + "<br>" + name.substring(10)
+            : name;
+    }
+
+    return parts.join("<br>");
 }
 
 /* ---------- SPEICHERN ---------- */
@@ -502,23 +509,10 @@ if(rolle === "viewer"){
     viewerInfo = `<div style="background:#eee;padding:10px;margin:10px;">👀 Zuschauer-Modus</div>`;
 }
 
-if(counterGesperrtListe && counterGesperrtListe[deviceId] && rolle === "counter"){
+if(counterGesperrtListe && counterGesperrtListe ["ALL"] && rolle === "counter"){
     viewerInfo = `<div style="background:#ffcccc;padding:10px;margin:10px;">🔒 Counter gesperrt</div>`;
 }
 
-if(aktuellesSpiel === 3 && modus === "twin"){
-    hinweis = `
-        <div style="
-            background:#ffeeba;
-            padding:12px;
-            margin:10px 0;
-            font-weight:bold;
-            border-radius:8px;
-        ">
-            ⚠️ Vor Spielbeginn 2–4 Spieler tauschen!
-        </div>
-    `;
-}
 let html=`
 <h1>Spiel ${aktuellesSpiel}</h1>
 ${viewerInfo}
@@ -710,7 +704,7 @@ function resetTimer(){
 
     clearInterval(timerInterval);
     timerInterval=null;
-    timer = spielzeit;
+    timer = spielZeit;
     if(sessionId){
     db.ref("sessions/"+sessionId+"/timer").set({
         start: Date.now(),
@@ -916,10 +910,18 @@ function toggleCounterSperre(){
 
     if(!nurMaster()) return;
 
-    if(!deviceId) return;
+    // 🔥 alle Counter toggeln
+    let neu = {};
 
-    // aktuellen Counter toggeln
-    counterGesperrtListe[deviceId] = !counterGesperrtListe[deviceId];
+    if(!counterGesperrtListe || Object.keys(counterGesperrtListe).length === 0){
+        // ALLE sperren
+        neu["ALL"] = true;
+    } else {
+        // ALLE entsperren
+        neu = {};
+    }
+
+    counterGesperrtListe = neu;
 
     if(sessionId){
         db.ref("sessions/"+sessionId).update({
