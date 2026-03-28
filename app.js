@@ -341,18 +341,19 @@ function formatZeit(s){
     return String(m).padStart(2,"0")+":"+String(sec).padStart(2,"0");
 }
 
-function formatTeamName(name){
+function splitTeamName(name){
 
-    let parts = name.split(" ");
-
-    if(parts.length === 1){
-        // fallback bei einem Wort
-        return name.length > 10
-            ? name.substring(0,10) + "<br>" + name.substring(10)
-            : name;
+    if(name.length <= 12){
+        return {
+            top: name,
+            bottom: ""
+        };
     }
 
-    return parts.join("<br>");
+    return {
+        top: name.substring(0,12),
+        bottom: name.substring(12)
+    };
 }
 
 /* ---------- SPEICHERN ---------- */
