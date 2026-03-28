@@ -516,6 +516,7 @@ if(counterGesperrtListe && counterGesperrtListe ["ALL"] && rolle === "counter"){
 let html=`
 <h1>Spiel ${aktuellesSpiel}</h1>
 ${viewerInfo}
+${hinweis}
 
 <div style="background:#e3f2fd;padding:10px;font-weight:bold;">
 Zwischenstand: ${teamA} ${z.pa} : ${z.pb} ${teamB}
@@ -545,8 +546,25 @@ html+=`
 <h3>Feld ${i+1}</h3>
 
 <div style="font-size:20px;text-align:center;font-weight:bold;line-height:1.2;">
-${formatTeamName(paarungen[i].a)} --- ${f.a} | ${f.b} --- ${formatTeamName(paarungen[i].b)}
-</div>
+${(() => {
+    let a = splitTeamName(paarungen[i].a);
+    let b = splitTeamName(paarungen[i].b);
+
+    return `
+    <div style="text-align:center;font-weight:bold;">
+        ${a.top} -- ${f.a} : ${f.b} -- ${b.top}
+    </div>
+
+    <div style="display:flex;justify-content:space-between;font-size:14px;">
+        <div style="width:45%;text-align:left;">
+            ${a.bottom || ""}
+        </div>
+        <div style="width:45%;text-align:right;">
+            ${b.bottom || ""}
+        </div>
+    </div>
+    `;
+})()}
 
 
 ${rolle !== "viewer" && !(counterGesperrtListe && counterGesperrtListe[deviceId])? `
@@ -593,6 +611,8 @@ function updateLiveSpiele(){
 }
 
 function plusA(i){
+    // 🔒 Counter gesperrt?
+    if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
 
     spiele[aktuellesSpiel-1].felder[i].a++;
@@ -601,6 +621,8 @@ function plusA(i){
 }
 
 function minusA(i){
+    // 🔒 Counter gesperrt?
+    if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
 
     if(spiele[aktuellesSpiel-1].felder[i].a>0)
@@ -610,6 +632,8 @@ function minusA(i){
 }
 
 function plusB(i){
+    // 🔒 Counter gesperrt?
+    if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
 
     spiele[aktuellesSpiel-1].felder[i].b++;
@@ -618,6 +642,8 @@ function plusB(i){
 }
 
 function minusB(i){
+    // 🔒 Counter gesperrt?
+    if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
 
     if(spiele[aktuellesSpiel-1].felder[i].b>0)
