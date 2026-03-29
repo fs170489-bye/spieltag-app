@@ -546,26 +546,45 @@ html+=`
 <div style="border:1px solid #ccc;padding:12px;margin:10px;">
 <h3>Feld ${i+1}</h3>
 
-<div style="font-size:20px;text-align:center;font-weight:bold;line-height:1.2;">
-${(() => {
-    let a = splitTeamName(paarungen[i].a);
-    let b = splitTeamName(paarungen[i].b);
+<div style="
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    margin:10px 0;
+">
 
-    return `
-    <div style="text-align:center;font-weight:bold;">
-        ${a.top} -- ${f.a} : ${f.b} -- ${b.top}
+    <!-- TEAM A -->
+    <div style="
+        flex:1;
+        text-align:left;
+        font-weight:bold;
+        word-break:break-word;
+    ">
+        ${paarungen[i].a}
     </div>
 
-    <div style="display:flex;justify-content:space-between;font-size:14px;">
-        <div style="width:45%;text-align:left;">
-            ${a.bottom || ""}
-        </div>
-        <div style="width:45%;text-align:right;">
-            ${b.bottom || ""}
-        </div>
+    <!-- SCORE -->
+    <div style="
+        min-width:70px;
+        text-align:center;
+        font-size:20px;
+        font-weight:bold;
+    ">
+        ${f.a} : ${f.b}
     </div>
-    `;
-})()}
+
+    <!-- TEAM B -->
+    <div style="
+        flex:1;
+        text-align:right;
+        font-weight:bold;
+        word-break:break-word;
+    ">
+        ${paarungen[i].b}
+    </div>
+
+</div>
 
 
 ${rolle !== "viewer" && !(counterGesperrtListe && counterGesperrtListe[deviceId])? `
