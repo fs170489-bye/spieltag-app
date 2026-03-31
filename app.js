@@ -94,23 +94,19 @@ function starteLiveListener(){
         liveRef.off();   // alten Listener komplett entfernen
         liveRef = null;
     }
-     let viewerCount = 0;
 
-     if(data.devices){
-    viewerCount = Object.values(data.devices)
-        .filter(d => d.rolle === "viewer").length;
-}
     liveRef = db.ref("sessions/"+sessionId);
 
     liveRef.on("value", (snapshot)=>{
+        let data = snapshot.val();
+
         let viewerCount = 0;
 
-        if(data.devices){
+        if(data && data.devices){
         viewerCount = Object.values(data.devices)
         .filter(d => d.rolle === "viewer").length;
         }
 
-        let data = snapshot.val();
         if(data.spielZeit) spielZeit = data.spielZeit;
 
         if(!data){
