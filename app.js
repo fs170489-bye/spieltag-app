@@ -94,10 +94,21 @@ function starteLiveListener(){
         liveRef.off();   // alten Listener komplett entfernen
         liveRef = null;
     }
+     let viewerCount = 0;
 
+     if(data.devices){
+    viewerCount = Object.values(data.devices)
+        .filter(d => d.rolle === "viewer").length;
+}
     liveRef = db.ref("sessions/"+sessionId);
 
     liveRef.on("value", (snapshot)=>{
+        let viewerCount = 0;
+
+        if(data.devices){
+        viewerCount = Object.values(data.devices)
+        .filter(d => d.rolle === "viewer").length;
+        }
 
         let data = snapshot.val();
         if(data.spielZeit) spielZeit = data.spielZeit;
@@ -520,19 +531,40 @@ ${viewerInfo}
 ${hinweis}
 
 <div style="background:#e3f2fd;padding:10px;font-weight:bold;">
-Zwischenstand: ${teamA} ${z.pa} : ${z.pb} ${teamB}
+<div style="text-align:center; margin:10px 0;">
+    
+    <div style="font-weight:bold;">
+        ${teamA}
+    </div>
+
+    <div style="font-size:22px;font-weight:bold;margin:5px 0;">
+        ${z.pa} : ${z.pb}
+    </div>
+
+    <div style="font-weight:bold;">
+        ${teamB}
+    </div>
+
 </div>
 
 ${rolle==="master" ? `
 <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin:10px;">
-    
+
+    <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+
+        <button onclick="toggleTimer()" id="timerBtn">Start</button>
+
+        <div style="font-weight:bold;">
+            👀 ${window.viewerCount || 0}
+        </div>
+
+    </div>
+
     <div style="display:flex;gap:8px;">
-        <button onclick="startTimer()">Start</button>
-        <button onclick="pauseTimer()">Pause</button>
         <button onclick="resetTimer()">Reset</button>
     </div>
 
-    <button style="font-size:18px;padding:8px 14px;" onclick="setTestZeit()">10s Test</button>
+    <button style="font-size:16px;padding:6px 10px;" onclick="setTestZeit()">10s Test</button>
 
 </div>
 ` : ``}
@@ -610,7 +642,7 @@ ${rolle==="master" ? `
     <button onclick="toggleQR('viewer')">QR Zuschauer</button>
     <button onclick="zeigeDashboard()">Dashboard</button>
     <button onclick="toggleCounterSperre()">
-    ${counterGesperrt ? "Counter entsperren" : "Counter sperren"}
+    ${counterGesperrtListe["ALL"] ? "Counter freigeben" : "Counter sperren"}
     </button>
     ` : rolle==="viewer" ? `
     <button onclick="toggleQR('viewer')">Zuschauer teilen</button>
@@ -670,6 +702,23 @@ function minusB(i){
         spiele[aktuellesSpiel-1].felder[i].b--;
     speichern();
     updateLiveSpiele();
+}
+
+function toggleTimer(){
+
+    if(!nurMaster()) return;
+
+    let running = timerInterval !== null;
+
+    if(running){
+        pauseTimer();
+        let btn = document.getElementById("timerBtn");
+        if(btn) btn.innerText = "Start";
+    } else {
+        startTimer();
+        let btn = document.getElementById("timerBtn");
+        if(btn) btn.innerText = "Pause";
+    }
 }
 
 /* ---------- TIMER ---------- */
