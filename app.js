@@ -6,6 +6,8 @@ let spiele=[];
 let gestarteteSpiele=[false,false,false];
 let timer=0;
 let timerInterval=null;
+let originalSpielZeit = 600;
+let spielZeit = 600; // Standard: 10 Minuten
 let status="spiel";
 let joinTime = Date.now();
 let sessionId=null;
@@ -15,8 +17,7 @@ let qrScreenAktiv = false;
 let counterGesperrt = false;
 let counterGesperrtListe = {};
 let deviceId = localStorage.getItem("deviceId") || null;
-
-let spielZeit = 600; // Standard: 10 Minuten
+let wakeLock = null;
 
 /* ---------- SESSION ---------- */
 function erstelleSession(){
@@ -101,6 +102,8 @@ function starteLiveListener(){
         let data = snapshot.val();
 
         let viewerCount = 0;
+        window.viewerCount = viewerCount;
+        ladeSpiel();
 
         if(data && data.devices){
         viewerCount = Object.values(data.devices)
@@ -338,6 +341,15 @@ function signalTonAbspielen(){
     o.start(); o.stop(ctx.currentTime+0.4);
 }
 
+async function keepScreenOn(){
+    try{
+        wakeLock = await navigator.wakeLock.request('screen');
+        console.log("Screen bleibt aktiv");
+    }catch(e){
+        console.log("WakeLock nicht verfügbar");
+    }
+}
+
 /* ---------- ZEITFORMAT ---------- */
 function formatZeit(s){
 
@@ -459,8 +471,8 @@ function startSpieltag(){
     if(zeitInput){
     minuten = parseInt(zeitInput.value) || 10;
 }
-
-spielZeit = minuten * 60;
+     originalSpielZeit = spielZeit;
+     spielZeit = minuten * 60;
 
     spiele=[];
     gestarteteSpiele=[false,false,false];
@@ -473,22 +485,27 @@ spielZeit = minuten * 60;
     }
 
     speichern();
-    erstelleSession();         
+    erstelleSession();     
+    keepScreenOn();   // 🔥 HIER    
 }
 /*-----------Neu------*/
 function setTestZeit(){
 
     if(!nurMaster()) return;
 
-    spielZeit = 10;
+    if(spielZeit === 10){
+        spielZeit = originalSpielZeit;
+        alert("Normale Zeit wieder aktiv");
+    } else {
+        spielZeit = 10;
+        alert("Testzeit: 10 Sekunden aktiviert");
+    }
 
     if(sessionId){
         db.ref("sessions/"+sessionId).update({
             spielZeit: spielZeit
         });
     }
-
-    alert("Testzeit: 10 Sekunden aktiviert");
 }
 
 /* ---------- SPIEL ---------- */
@@ -526,19 +543,14 @@ let html=`
 ${viewerInfo}
 ${hinweis}
 
-<div style="background:#e3f2fd;padding:10px;font-weight:bold;">
-<div style="text-align:center; margin:10px 0;">
-    
-    <div style="font-weight:bold;">
-        ${teamA}
+<div style="background:#e3f2fd;padding:12px;">
+
+    <div style="text-align:left;font-weight:bold;">
+        ${teamA}: ${z.pa}
     </div>
 
-    <div style="font-size:22px;font-weight:bold;margin:5px 0;">
-        ${z.pa} : ${z.pb}
-    </div>
-
-    <div style="font-weight:bold;">
-        ${teamB}
+    <div style="text-align:left;font-weight:bold;margin-top:4px;">
+        ${teamB}: ${z.pb}
     </div>
 
 </div>
@@ -576,7 +588,8 @@ html+=`
 
 <div style="
     display:flex;
-    align-items:center;
+    flex-direction:column;
+    align-items:flex-start;
     justify-content:space-between;
     gap:8px;
     margin:10px 0;
@@ -605,7 +618,7 @@ html+=`
     <!-- TEAM B -->
     <div style="
         flex:1;
-        text-align:right;
+        text-align:left;
         font-weight:bold;
         word-break:break-word;
     ">
@@ -638,7 +651,7 @@ ${rolle==="master" ? `
     <button onclick="toggleQR('viewer')">QR Zuschauer</button>
     <button onclick="zeigeDashboard()">Dashboard</button>
     <button onclick="toggleCounterSperre()">
-    ${counterGesperrtListe["ALL"] ? "Counter freigeben" : "Counter sperren"}
+    ${counterGesperrtListe[deviceId] ? "Counter freigeben" : "Counter sperren"}
     </button>
     ` : rolle==="viewer" ? `
     <button onclick="toggleQR('viewer')">Zuschauer teilen</button>
@@ -660,7 +673,7 @@ function updateLiveSpiele(){
 
 function plusA(i){
     // 🔒 Counter gesperrt?
-    if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
+    if(counterGesperrtListe && counterGesperrtListe[deviceId] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
 
     spiele[aktuellesSpiel-1].felder[i].a++;
@@ -670,7 +683,7 @@ function plusA(i){
 
 function minusA(i){
     // 🔒 Counter gesperrt?
-    if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
+    if(counterGesperrtListe && counterGesperrtListe[deviceId] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
 
     if(spiele[aktuellesSpiel-1].felder[i].a>0)
@@ -681,7 +694,7 @@ function minusA(i){
 
 function plusB(i){
     // 🔒 Counter gesperrt?
-    if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
+    if(counterGesperrtListe && counterGesperrtListe[deviceId] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
 
     spiele[aktuellesSpiel-1].felder[i].b++;
@@ -691,7 +704,7 @@ function plusB(i){
 
 function minusB(i){
     // 🔒 Counter gesperrt?
-    if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
+    if(counterGesperrtListe && counterGesperrtListe[deviceId] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
 
     if(spiele[aktuellesSpiel-1].felder[i].b>0)
@@ -983,8 +996,10 @@ function zeigeDashboard(){
         let html = `<h3>Verbundene Geräte: ${Object.keys(data).length}</h3>`;
 
         Object.entries(data).forEach(([id,info])=>{
-            html += `<div>${id} - ${info.rolle}</div>`;
-        });
+        if(info.rolle === "counter"){
+        html += `<div>${id} - Counter</div>`;
+        }
+      });  
 
         let box = document.getElementById("dashboard");
         if(!box){
@@ -1001,18 +1016,9 @@ function toggleCounterSperre(){
 
     if(!nurMaster()) return;
 
-    // 🔥 alle Counter toggeln
-    let neu = {};
+    if(!deviceId) return;
 
-    if(!counterGesperrtListe || Object.keys(counterGesperrtListe).length === 0){
-        // ALLE sperren
-        neu["ALL"] = true;
-    } else {
-        // ALLE entsperren
-        neu = {};
-    }
-
-    counterGesperrtListe = neu;
+    counterGesperrtListe[deviceId] = !counterGesperrtListe[deviceId];
 
     if(sessionId){
         db.ref("sessions/"+sessionId).update({
