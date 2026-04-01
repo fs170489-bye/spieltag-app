@@ -101,14 +101,15 @@ function starteLiveListener(){
     liveRef.on("value", (snapshot)=>{
         let data = snapshot.val();
 
+        if(!data) return;
+
         let viewerCount = 0;
-        window.viewerCount = viewerCount;
-        ladeSpiel();
 
         if(data && data.devices){
         viewerCount = Object.values(data.devices)
         .filter(d => d.rolle === "viewer").length;
         }
+        window.viewerCount = viewerCount;
 
         if(data.spielZeit) spielZeit = data.spielZeit;
 
@@ -588,10 +589,9 @@ html+=`
 
 <div style="
     display:flex;
-    flex-direction:column;
-    align-items:flex-start;
+    align-items:center;
     justify-content:space-between;
-    gap:8px;
+    gap:10px;
     margin:10px 0;
 ">
 
@@ -600,14 +600,13 @@ html+=`
         flex:1;
         text-align:left;
         font-weight:bold;
-        word-break:break-word;
     ">
         ${paarungen[i].a}
     </div>
 
     <!-- SCORE -->
     <div style="
-        min-width:70px;
+        min-width:80px;
         text-align:center;
         font-size:20px;
         font-weight:bold;
@@ -618,9 +617,8 @@ html+=`
     <!-- TEAM B -->
     <div style="
         flex:1;
-        text-align:left;
+        text-align:right;
         font-weight:bold;
-        word-break:break-word;
     ">
         ${paarungen[i].b}
     </div>
@@ -651,7 +649,7 @@ ${rolle==="master" ? `
     <button onclick="toggleQR('viewer')">QR Zuschauer</button>
     <button onclick="zeigeDashboard()">Dashboard</button>
     <button onclick="toggleCounterSperre()">
-    ${counterGesperrtListe[deviceId] ? "Counter freigeben" : "Counter sperren"}
+    ${counterGesperrtListe["ALL"] ? "Counter freigeben" : "Counter sperren"}
     </button>
     ` : rolle==="viewer" ? `
     <button onclick="toggleQR('viewer')">Zuschauer teilen</button>
@@ -673,7 +671,7 @@ function updateLiveSpiele(){
 
 function plusA(i){
     // 🔒 Counter gesperrt?
-    if(counterGesperrtListe && counterGesperrtListe[deviceId] && rolle === "counter") return;
+    if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
 
     spiele[aktuellesSpiel-1].felder[i].a++;
@@ -683,7 +681,7 @@ function plusA(i){
 
 function minusA(i){
     // 🔒 Counter gesperrt?
-    if(counterGesperrtListe && counterGesperrtListe[deviceId] && rolle === "counter") return;
+    if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
 
     if(spiele[aktuellesSpiel-1].felder[i].a>0)
@@ -694,7 +692,7 @@ function minusA(i){
 
 function plusB(i){
     // 🔒 Counter gesperrt?
-    if(counterGesperrtListe && counterGesperrtListe[deviceId] && rolle === "counter") return;
+    if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
 
     spiele[aktuellesSpiel-1].felder[i].b++;
@@ -704,7 +702,7 @@ function plusB(i){
 
 function minusB(i){
     // 🔒 Counter gesperrt?
-    if(counterGesperrtListe && counterGesperrtListe[deviceId] && rolle === "counter") return;
+    if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
 
     if(spiele[aktuellesSpiel-1].felder[i].b>0)
@@ -1016,9 +1014,11 @@ function toggleCounterSperre(){
 
     if(!nurMaster()) return;
 
-    if(!deviceId) return;
-
-    counterGesperrtListe[deviceId] = !counterGesperrtListe[deviceId];
+    if(counterGesperrtListe["ALL"]){
+        counterGesperrtListe = {};
+    } else {
+        counterGesperrtListe = {"ALL": true};
+    }
 
     if(sessionId){
         db.ref("sessions/"+sessionId).update({
