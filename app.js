@@ -155,9 +155,7 @@ function starteLiveListener(){
 }
           if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
 
-         if(data.counterGesperrtListe){
-         counterGesperrtListe = data.counterGesperrtListe;
-         }
+         counterGesperrtListe = data.counterGesperrtListe || {};
 
           if(data.status === "ergebnis"){
           zeigeErgebnis();
@@ -345,7 +343,12 @@ function signalTonAbspielen(){
 async function keepScreenOn(){
     try{
         wakeLock = await navigator.wakeLock.request('screen');
-        console.log("Screen bleibt aktiv");
+
+        wakeLock.addEventListener('release', () => {
+            console.log("WakeLock verloren → neu anfordern");
+            keepScreenOn();
+        });
+
     }catch(e){
         console.log("WakeLock nicht verfügbar");
     }
@@ -1017,20 +1020,27 @@ function toggleCounterSperre(){
     let gesperrt = counterGesperrtListe && counterGesperrtListe["ALL"];
 
     if(gesperrt){
+
         // 🔓 ENTSPERREN
         counterGesperrtListe = {};
+
+        if(sessionId){
+            db.ref("sessions/"+sessionId+"/counterGesperrtListe").remove();
+        }
+
     } else {
+
         // 🔒 SPERREN
         counterGesperrtListe = {"ALL": true};
+
+        if(sessionId){
+            db.ref("sessions/"+sessionId).update({
+                counterGesperrtListe: counterGesperrtListe
+            });
+        }
     }
 
-    if(sessionId){
-        db.ref("sessions/"+sessionId).update({
-            counterGesperrtListe: counterGesperrtListe
-        });
-    }
-    // 🔥 HIER EINBAUEN (GANZ UNTEN!)
-    ladeSpiel();
+    ladeSpiel(); // UI sofort aktualisieren
 }
 
 function springeZuSpiel(n){aktuellesSpiel=n;ladeSpiel();}
@@ -1054,6 +1064,19 @@ window.addEventListener("online", ()=>{
 
 /* ---------- START ---------- */
 window.onload=function(){
+
+    document.addEventListener("visibilitychange", () => {
+
+    if(document.visibilityState === "visible"){
+        console.log("App wieder aktiv → resync");
+
+        if(sessionId){
+            starteLiveListener();
+            starteTimerListener();
+        }
+    }
+});
+
     pruefeSessionJoin();
      if(laden() && sessionId){
      if(sessionId){
