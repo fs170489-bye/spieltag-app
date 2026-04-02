@@ -649,7 +649,7 @@ ${rolle==="master" ? `
     <button onclick="toggleQR('viewer')">QR Zuschauer</button>
     <button onclick="zeigeDashboard()">Dashboard</button>
     <button onclick="toggleCounterSperre()">
-    ${counterGesperrtListe["ALL"] ? "Counter freigeben" : "Counter sperren"}
+    ${counterGesperrtListe && counterGesperrtListe["ALL"] ? "Counter freigeben" : "Counter sperren"}
     </button>
     ` : rolle==="viewer" ? `
     <button onclick="toggleQR('viewer')">Zuschauer teilen</button>
@@ -1014,9 +1014,13 @@ function toggleCounterSperre(){
 
     if(!nurMaster()) return;
 
-    if(counterGesperrtListe["ALL"]){
+    let gesperrt = counterGesperrtListe && counterGesperrtListe["ALL"];
+
+    if(gesperrt){
+        // 🔓 ENTSPERREN
         counterGesperrtListe = {};
     } else {
+        // 🔒 SPERREN
         counterGesperrtListe = {"ALL": true};
     }
 
@@ -1025,6 +1029,8 @@ function toggleCounterSperre(){
             counterGesperrtListe: counterGesperrtListe
         });
     }
+    // 🔥 HIER EINBAUEN (GANZ UNTEN!)
+    ladeSpiel();
 }
 
 function springeZuSpiel(n){aktuellesSpiel=n;ladeSpiel();}
