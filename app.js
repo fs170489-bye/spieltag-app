@@ -439,6 +439,7 @@ return {pa,pb};
 function setModus(m){modus=m;zeigeTeamEingabe();}
 
 function zeigeModusAuswahl(){
+
 document.body.innerHTML=`
 <h1>Modus wählen</h1>
 <button onclick="setModus('single')">Single</button>
@@ -446,11 +447,18 @@ document.body.innerHTML=`
 }
 
 function zeigeTeamEingabe(){
+
+let lastA = localStorage.getItem("lastTeamA") || "";
+let lastB = localStorage.getItem("lastTeamB") || "";
+
 document.body.innerHTML=`
 <h1>Teams</h1>
 
-<input id="teamA" placeholder="Team A">
-<input id="teamB" placeholder="Team B">
+<input id="teamA" value="${lastA}" placeholder="Team A" oninput="zeigeVorschlaege(this, 'A')">
+<div id="suggestA"></div>
+
+<input id="teamB" value="${lastB}" placeholder="Team B" oninput="zeigeVorschlaege(this, 'B')">
+<div id="suggestB"></div>
 
 <br><br>
 
@@ -469,14 +477,25 @@ function startSpieltag(){
     teamA=document.getElementById("teamA").value;
     teamB=document.getElementById("teamB").value;
 
+    localStorage.setItem("lastTeamA", teamA);
+    localStorage.setItem("lastTeamB", teamB);
+
+    // 🔥 TEAMLISTE SPEICHERN (NEU)
+   let teams = JSON.parse(localStorage.getItem("teamListe") || "[]");
+
+   if(teamA && !teams.includes(teamA)) teams.push(teamA);
+   if(teamB && !teams.includes(teamB)) teams.push(teamB);
+
+   localStorage.setItem("teamListe", JSON.stringify(teams));
+
     let zeitInput = document.getElementById("spielZeitInput");
 
     let minuten = 10;
     if(zeitInput){
     minuten = parseInt(zeitInput.value) || 10;
 }
-     originalSpielZeit = spielZeit;
      spielZeit = minuten * 60;
+     originalSpielZeit = spielZeit; // 🔥 NACH setzen!
 
     spiele=[];
     gestarteteSpiele=[false,false,false];
@@ -503,15 +522,22 @@ function setTestZeit(){
 
     if(spielZeit === 10){
         spielZeit = originalSpielZeit;
-        alert("Normale Zeit wieder aktiv");
+        alert("Normale Zeit aktiv");
     } else {
         spielZeit = 10;
-        alert("Testzeit: 10 Sekunden aktiviert");
+        alert("Testzeit aktiv");
     }
 
     if(sessionId){
         db.ref("sessions/"+sessionId).update({
             spielZeit: spielZeit
+        });
+
+        // 🔥 TIMER RESET (WICHTIG!)
+        db.ref("sessions/"+sessionId+"/timer").set({
+            start: Date.now(),
+            running: false,
+            value: spielZeit
         });
     }
 }
@@ -552,6 +578,10 @@ ${viewerInfo}
 ${hinweis}
 
 <div style="background:#e3f2fd;padding:12px;">
+
+    <div style="font-size:12px;color:#555;margin-bottom:4px;">
+        Tendenzwertung
+    </div>
 
     <div style="text-align:left;font-weight:bold;">
         ${teamA}: ${z.pa}
@@ -1007,13 +1037,20 @@ function zeigeDashboard(){
     db.ref("sessions/"+sessionId+"/devices").on("value",(snap)=>{
 
         let data = snap.val() || {};
-        let html = `<h3>Verbundene Geräte: ${Object.keys(data).length}</h3>`;
+        let html = `<h3>Counter Geräte</h3>`;
 
         Object.entries(data).forEach(([id,info])=>{
-        if(info.rolle === "counter"){
-        html += `<div>${id} - Counter</div>`;
-        }
-      });  
+
+            if(info.rolle === "counter"){
+
+                html += `
+                <div style="margin:5px 0;">
+                    ${id}
+                    <button onclick="kickCounter('${id}')">❌</button>
+                </div>
+                `;
+            }
+        });
 
         let box = document.getElementById("dashboard");
         if(!box){
@@ -1024,6 +1061,15 @@ function zeigeDashboard(){
 
         box.innerHTML = html;
     });
+}
+
+function kickCounter(id){
+
+    if(!nurMaster()) return;
+
+    if(sessionId){
+        db.ref("sessions/"+sessionId+"/devices/"+id).remove();
+    }
 }
 
 function toggleCounterSperre(){
@@ -1056,7 +1102,19 @@ function toggleCounterSperre(){
     ladeSpiel(); // UI sofort aktualisieren
 }
 
-function springeZuSpiel(n){aktuellesSpiel=n;ladeSpiel();}
+function springeZuSpiel(n){
+
+    aktuellesSpiel = n;
+    status = "spiel";
+
+    if(sessionId){
+        db.ref("sessions/"+sessionId).update({
+            status: "spiel"
+        });
+    }
+
+    ladeSpiel();
+}
 
 /* ---------- ONLINE / OFFLINE ---------- */
 window.addEventListener("online", ()=>{
@@ -1078,14 +1136,17 @@ window.addEventListener("online", ()=>{
 /* ---------- START ---------- */
 window.onload=function(){
 
-    document.addEventListener("visibilitychange", () => {
+document.addEventListener("visibilitychange", () => {
 
     if(document.visibilityState === "visible"){
-        console.log("App wieder aktiv → resync");
+        console.log("Resync...");
 
         if(sessionId){
             starteLiveListener();
             starteTimerListener();
+
+            // 🔥 EXTRA FIX:
+            ladeSpiel();
         }
     }
 });
@@ -1106,4 +1167,41 @@ else ladeSpiel();
 }else{
    zeigeModusAuswahl();
 }
+}
+
+// 🔥 AUTOCOMPLETE FUNKTION
+function zeigeVorschlaege(input, typ){
+
+    let wert = input.value.toLowerCase();
+    let teams = JSON.parse(localStorage.getItem("teamListe") || "[]");
+
+    let box = document.getElementById("suggest"+typ);
+
+    if(!wert){
+        box.innerHTML = "";
+        return;
+    }
+
+    let gefiltert = teams.filter(t => t.toLowerCase().includes(wert));
+
+    box.innerHTML = gefiltert.map(t => `
+        <div style="
+            padding:5px;
+            border-bottom:1px solid #ccc;
+            cursor:pointer;
+        " onclick="waehleTeam('${t}', '${typ}')">
+            ${t}
+        </div>
+    `).join("");
+}
+
+
+// 🔥 AUSWAHL FUNKTION
+function waehleTeam(name, typ){
+
+    let input = document.getElementById("team"+typ);
+    let box = document.getElementById("suggest"+typ);
+
+    input.value = name;
+    box.innerHTML = "";
 }
