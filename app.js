@@ -100,6 +100,17 @@ function starteLiveListener(){
 
     liveRef.on("value", (snapshot)=>{
         let data = snapshot.val();
+        // 🔥 WENN ICH GEKICKT BIN → APP STOPPEN
+       if(data.kicked && deviceId && data.kicked[deviceId]){
+
+        alert("Du wurdest vom Spiel entfernt");
+
+        sessionId = null;
+        localStorage.clear();
+
+       location.reload();
+       return;
+       }
 
         if(!data) return;
 
@@ -277,6 +288,13 @@ function pruefeSessionJoin(){
         registriereGeraet();
         starteTimerListener();
         starteLiveListener();
+
+        // 🔥 EXTRA SYNC (iOS FIX)
+      setTimeout(()=>{
+      starteLiveListener();
+      starteTimerListener();
+     ladeSpiel();
+     }, 500);
 
         document.body.innerHTML = "<h2>Verbunden... Lade Spiel...</h2>";
     }
@@ -479,6 +497,17 @@ function startSpieltag(){
 
     localStorage.setItem("lastTeamA", teamA);
     localStorage.setItem("lastTeamB", teamB);
+
+    // 🔥 TEAMLISTE GLOBAL SPEICHERN
+    db.ref("teams").once("value").then(snap=>{
+
+    let list = snap.val() || [];
+
+    if(teamA && !list.includes(teamA)) list.push(teamA);
+    if(teamB && !list.includes(teamB)) list.push(teamB);
+
+    db.ref("teams").set(list);
+});
 
     // 🔥 TEAMLISTE SPEICHERN (NEU)
    let teams = JSON.parse(localStorage.getItem("teamListe") || "[]");
@@ -1068,6 +1097,11 @@ function kickCounter(id){
     if(!nurMaster()) return;
 
     if(sessionId){
+
+        // 🔥 Gerät als gekickt markieren
+        db.ref("sessions/"+sessionId+"/kicked/"+id).set(true);
+
+        // optional aus Liste entfernen
         db.ref("sessions/"+sessionId+"/devices/"+id).remove();
     }
 }
@@ -1136,21 +1170,6 @@ window.addEventListener("online", ()=>{
 /* ---------- START ---------- */
 window.onload=function(){
 
-document.addEventListener("visibilitychange", () => {
-
-    if(document.visibilityState === "visible"){
-        console.log("Resync...");
-
-        if(sessionId){
-            starteLiveListener();
-            starteTimerListener();
-
-            // 🔥 EXTRA FIX:
-            ladeSpiel();
-        }
-    }
-});
-
     pruefeSessionJoin();
      if(laden() && sessionId){
      if(sessionId){
@@ -1169,12 +1188,32 @@ else ladeSpiel();
 }
 }
 
+// 🔥 APP KOMMT AUS STANDBY ZURÜCK
+document.addEventListener("visibilitychange", () => {
+
+    if(document.visibilityState === "visible"){
+        console.log("Resync...");
+
+        if(sessionId){
+            starteLiveListener();
+            starteTimerListener();
+            ladeSpiel();
+        }
+    }
+});
+
+// 🔥 HIER UNTEN EINFÜGEN
+window.addEventListener("focus", () => {
+    if(sessionId){
+        starteLiveListener();
+        starteTimerListener();
+    }
+});
+
 // 🔥 AUTOCOMPLETE FUNKTION
 function zeigeVorschlaege(input, typ){
 
     let wert = input.value.toLowerCase();
-    let teams = JSON.parse(localStorage.getItem("teamListe") || "[]");
-
     let box = document.getElementById("suggest"+typ);
 
     if(!wert){
@@ -1182,19 +1221,25 @@ function zeigeVorschlaege(input, typ){
         return;
     }
 
-    let gefiltert = teams.filter(t => t.toLowerCase().includes(wert));
+    db.ref("teams").once("value").then(snap=>{
 
-    box.innerHTML = gefiltert.map(t => `
-        <div style="
-            padding:5px;
-            border-bottom:1px solid #ccc;
-            cursor:pointer;
-        " onclick="waehleTeam('${t}', '${typ}')">
-            ${t}
-        </div>
-    `).join("");
+        let teams = snap.val() || [];
+
+        let gefiltert = teams.filter(t => 
+            t.toLowerCase().includes(wert)
+        );
+
+        box.innerHTML = gefiltert.map(t => `
+            <div style="
+                padding:5px;
+                border-bottom:1px solid #ccc;
+                cursor:pointer;
+            " onclick="waehleTeam('${t}', '${typ}')">
+                ${t}
+            </div>
+        `).join("");
+    });
 }
-
 
 // 🔥 AUSWAHL FUNKTION
 function waehleTeam(name, typ){
