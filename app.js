@@ -228,10 +228,10 @@ function starteTimerListener(){
         }
 
         // 🔥 WICHTIG: End-Signal hier global auslösen
-        if(!data.running && timer <= 0){
+        if(!data.running && timer <= 0 && rolle !== "viewer"){
 
             signalTonAbspielen();
-            if(navigator.vibrate){
+            if(navigator.vibrate && rolle !== "viewer"){
                 navigator.vibrate([300,200,300]);
             }
         }
@@ -490,7 +490,11 @@ function startSpieltag(){
 
     speichern();
     erstelleSession();     
-    keepScreenOn();   // 🔥 HIER    
+    keepScreenOn();   // 🔥 HIER  
+    // 🔥 Fullscreen Trick (hilft gegen Display-Sperre)
+   if(document.documentElement.requestFullscreen){
+    document.documentElement.requestFullscreen().catch(()=>{});
+   }  
 }
 /*-----------Neu------*/
 function setTestZeit(){
@@ -763,29 +767,38 @@ function startTimer(){
         if(el){
             el.innerText=formatZeit(timer);
 
-            if(timer <= 60){
-                el.style.color=(timer%2===0)?"red":"black";
-            }else{
-                el.style.color="black";
+            if(timer <= 60 && timer > 0){
+             el.style.color = (timer%2===0) ? "red" : "black";
+              } else if(timer <= 0){
+               el.style.color = "red";
+             } else {
+             el.style.color = "black";
             }
         }
 
         if(timer<=0){
 
-    clearInterval(timerInterval);
-    timerInterval=null;
+        clearInterval(timerInterval);
+        timerInterval=null;
 
-    if(sessionId){
+        if(sessionId){
         db.ref("sessions/"+sessionId+"/timer").update({
             running:false,
             value: timer
         });
+       }
+
+        let el=document.getElementById("zeit");
+       if(el){
+        el.style.color = "red";
+        el.style.fontSize = "32px"; // 🔥 BONUS HIER
+       }
+
+        signalTonAbspielen();
+        if(navigator.vibrate && rolle !== "viewer"){
+        navigator.vibrate([300,200,300]);
+     }
     }
-
-    signalTonAbspielen();
-    if(navigator.vibrate) navigator.vibrate([300,200,300]);
-}
-
     },1000);
 }
 
