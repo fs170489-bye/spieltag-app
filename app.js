@@ -18,6 +18,8 @@ let counterGesperrt = false;
 let counterGesperrtListe = {};
 let deviceId = localStorage.getItem("deviceId") || null;
 let wakeLock = null;
+let keepAliveInterval = null;
+let teamCache = [];
 
 /* ---------- SESSION ---------- */
 function erstelleSession(){
@@ -69,6 +71,11 @@ let liveRef = null;
 function zeigeQRStartseite(){
     qrScreenAktiv = true;
 
+    if(!sessionId){
+    alert("Keine Session aktiv");
+    return;
+}
+
     // Nur Master darf QR sehen
     if(rolle && rolle !== "master"){
         ladeSpiel();
@@ -81,7 +88,7 @@ function zeigeQRStartseite(){
         <h1>Counter verbinden</h1>
         <div id="qrcode"></div>
         <br>
-        <button onclick="qrScreenAktiv=false; ladeSpiel()">Weiter zum Spiel</button>
+        <button onclick="ladeSpiel()">Weiter zum Spiel</button>
     `;
 
     new QRCode(document.getElementById("qrcode"), url);
@@ -112,14 +119,18 @@ function starteLiveListener(){
        return;
        }
 
-        if(!data) return;
-
         let viewerCount = 0;
 
-        if(data && data.devices){
-        viewerCount = Object.values(data.devices)
-        .filter(d => d.rolle === "viewer").length;
-        }
+       if(data && data.devices){
+
+    let now = Date.now();
+
+    viewerCount = Object.values(data.devices)
+        .filter(d => 
+            d.rolle === "viewer" &&
+            (now - (d.lastSeen || 0)) < 25000 // 🔥 max 15 Sekunden alt
+        ).length;
+}
         window.viewerCount = viewerCount;
 
         if(data.spielZeit) spielZeit = data.spielZeit;
@@ -184,7 +195,21 @@ function starteTimerListener(){
     db.ref("sessions/"+sessionId+"/timer").on("value",(snap)=>{
 
         let data = snap.val();
-        if(!data) return;
+        if(!data){
+         document.body.innerHTML = `
+        <h2>Session beendet</h2>
+        <p>Bitte neuen QR-Code scannen.</p>
+        `;
+
+       if(liveRef){
+        liveRef.off();
+        liveRef = null;
+        }
+
+       sessionId = null;
+       localStorage.clear();
+       return;
+       }  
 
         // 🔥 Schutz: wenn Spiel gewechselt wurde → Timer sauber setzen
         if(timer > spielZeit){
@@ -234,8 +259,6 @@ function starteTimerListener(){
                 }
 
             },1000);
-            ladeSpiel();
-
         }
 
         // 🔥 WICHTIG: End-Signal hier global auslösen
@@ -266,8 +289,17 @@ function registriereGeraet(){
         lastSeen: Date.now()
     });
 
+    // 🔥 KEEP ALIVE (ALLE 10 SEKUNDEN)
+    if(keepAliveInterval) clearInterval(keepAliveInterval);
+
+    keepAliveInterval = setInterval(()=>{
+    ref.update({
+        lastSeen: Date.now()
+    });
+    }, 10000);
+ 
     ref.onDisconnect().remove();
-}
+ }
 function pruefeSessionJoin(){
 
     const params = new URLSearchParams(window.location.search);
@@ -573,6 +605,8 @@ function setTestZeit(){
 
 /* ---------- SPIEL ---------- */
 function ladeSpiel(){
+    document.body.style.fontFamily = "system-ui";
+    document.body.style.background = "#f5f5f5";
 
 let paarungen=getPaarungen();
 let z=berechneZwischenstand();
@@ -1070,7 +1104,7 @@ function zeigeDashboard(){
 
         Object.entries(data).forEach(([id,info])=>{
 
-            if(info.rolle === "counter"){
+            if(info.rolle === "counter" && (Date.now() - (info.lastSeen || 0)) < 25000){
 
                 html += `
                 <div style="margin:5px 0;">
