@@ -632,40 +632,60 @@ let html=`
 ${viewerInfo}
 ${hinweis}
 
-<div style="background:#e3f2fd;padding:12px;">
+<div style="
+    background:white;
+    border-radius:14px;
+    padding:14px;
+    margin:10px 0;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+">
 
-    <div style="font-size:12px;color:#555;margin-bottom:4px;">
+    <div style="font-size:12px;color:#666;margin-bottom:6px;">
         Tendenzwertung
     </div>
 
-    <div style="text-align:left;font-weight:bold;">
-        ${teamA}: ${z.pa}
-    </div>
-
-    <div style="text-align:left;font-weight:bold;margin-top:4px;">
-        ${teamB}: ${z.pb}
+    <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        font-size:18px;
+        font-weight:bold;
+    ">
+        <span>${teamA}</span>
+        <span>${z.pa} : ${z.pb}</span>
+        <span>${teamB}</span>
     </div>
 
 </div>
 
 ${rolle==="master" ? `
-<div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin:10px;">
+<div style="margin:10px;">
 
-    <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+    <!-- ROW 1 -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
 
-        <button onclick="toggleTimer()" id="timerBtn">Start</button>
+        <button onclick="toggleTimer()" id="timerBtn" style="flex:1;margin-right:5px;">
+            Start
+        </button>
+
+        <button onclick="resetTimer()" style="flex:1;margin-left:5px;">
+            Reset
+        </button>
+
+    </div>
+
+    <!-- ROW 2 -->
+    <div style="display:flex;justify-content:space-between;align-items:center;">
 
         <div style="font-weight:bold;">
             👀 ${window.viewerCount || 0}
         </div>
 
-    </div>
+        <button onclick="setTestZeit()" style="margin-left:10px;">
+            10s Test
+        </button>
 
-    <div style="display:flex;gap:8px;">
-        <button onclick="resetTimer()">Reset</button>
     </div>
-
-    <button style="font-size:16px;padding:6px 10px;" onclick="setTestZeit()">10s Test</button>
 
 </div>
 ` : ``}
@@ -680,12 +700,14 @@ html+=`
 <h3>Feld ${i+1}</h3>
 
 <div style="
+    flex:1;
     display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    margin:10px 0;
+    flex-direction:column;
+    align-items:flex-start;
+    font-weight:bold;
 ">
+    ${paarungen[i].b}
+</div>
 
     <!-- TEAM A -->
     <div style="
@@ -700,7 +722,7 @@ html+=`
     <div style="
         min-width:80px;
         text-align:center;
-        font-size:20px;
+        font-size:26px;
         font-weight:bold;
     ">
         ${f.a} : ${f.b}
@@ -709,7 +731,7 @@ html+=`
     <!-- TEAM B -->
     <div style="
         flex:1;
-        text-align:right;
+        text-align:left;
         font-weight:bold;
     ">
         ${paarungen[i].b}
@@ -1218,11 +1240,17 @@ else ladeSpiel();
 document.addEventListener("visibilitychange", () => {
 
     if(document.visibilityState === "visible"){
-        console.log("Resync...");
+
+        console.log("Resync + Rejoin...");
 
         if(sessionId){
+
+            // 🔥 GANZ WICHTIG
+            registriereGeraet();   // ← DAS FEHLT BEI DIR
+
             starteLiveListener();
             starteTimerListener();
+
             ladeSpiel();
         }
     }
@@ -1231,6 +1259,7 @@ document.addEventListener("visibilitychange", () => {
 // 🔥 HIER UNTEN EINFÜGEN
 window.addEventListener("focus", () => {
     if(sessionId){
+        registriereGeraet();   // 🔥 auch hier
         starteLiveListener();
         starteTimerListener();
     }
