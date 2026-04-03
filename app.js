@@ -54,6 +54,11 @@ function erstelleSession(){
         spielZeit: spielZeit,
         counterGesperrt: false
     });
+    db.ref("sessions/"+sessionId+"/timer").set({
+    start: Date.now(),
+    running: false,
+    value: spielZeit
+    });
 
     speichern();
 
@@ -107,8 +112,15 @@ function starteLiveListener(){
 
     liveRef.on("value", (snapshot)=>{
         let data = snapshot.val();
+        if(!data){
+        document.body.innerHTML = `
+        <h2>Session beendet</h2>
+        <p>Bitte neuen QR-Code scannen.</p>
+        `;
+       return;
+        }
         // 🔥 WENN ICH GEKICKT BIN → APP STOPPEN
-       if(data.kicked && deviceId && data.kicked[deviceId]){
+       if(data && data.kicked && deviceId && data.kicked[deviceId]){
 
         alert("Du wurdest vom Spiel entfernt");
 
@@ -136,11 +148,6 @@ function starteLiveListener(){
         if(data.spielZeit) spielZeit = data.spielZeit;
 
         if(!data){
-            
-            document.body.innerHTML = `
-            <h2>Session beendet</h2>
-            <p>Bitte neuen QR-Code scannen.</p>
-            `;
 
             if(liveRef){
             liveRef.off();
@@ -195,21 +202,9 @@ function starteTimerListener(){
     db.ref("sessions/"+sessionId+"/timer").on("value",(snap)=>{
 
         let data = snap.val();
-        if(!data){
-         document.body.innerHTML = `
-        <h2>Session beendet</h2>
-        <p>Bitte neuen QR-Code scannen.</p>
-        `;
-
-       if(liveRef){
-        liveRef.off();
-        liveRef = null;
-        }
-
-       sessionId = null;
-       localStorage.clear();
-       return;
-       }  
+         if(!data){
+         return; // 🔥 Timer existiert noch nicht → völlig normal!
+         }
 
         // 🔥 Schutz: wenn Spiel gewechselt wurde → Timer sauber setzen
         if(timer > spielZeit){
@@ -571,10 +566,7 @@ function startSpieltag(){
     speichern();
     erstelleSession();     
     keepScreenOn();   // 🔥 HIER  
-    // 🔥 Fullscreen Trick (hilft gegen Display-Sperre)
-   if(document.documentElement.requestFullscreen){
-    document.documentElement.requestFullscreen().catch(()=>{});
-   }  
+   
 }
 /*-----------Neu------*/
 function setTestZeit(){
