@@ -699,15 +699,13 @@ html+=`
 <div style="border:1px solid #ccc;padding:12px;margin:10px;">
 <h3>Feld ${i+1}</h3>
 
+✅ ERSETZE DURCH DAS (SAUBER & STABIL):
 <div style="
-    flex:1;
     display:flex;
-    flex-direction:column;
-    align-items:flex-start;
-    font-weight:bold;
+    justify-content:space-between;
+    align-items:center;
+    margin:10px 0;
 ">
-    ${paarungen[i].b}
-</div>
 
     <!-- TEAM A -->
     <div style="
@@ -720,9 +718,9 @@ html+=`
 
     <!-- SCORE -->
     <div style="
-        min-width:80px;
+        min-width:70px;
         text-align:center;
-        font-size:26px;
+        font-size:24px;
         font-weight:bold;
     ">
         ${f.a} : ${f.b}
@@ -731,7 +729,7 @@ html+=`
     <!-- TEAM B -->
     <div style="
         flex:1;
-        text-align:left;
+        text-align:right;
         font-weight:bold;
     ">
         ${paarungen[i].b}
