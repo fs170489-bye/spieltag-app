@@ -659,47 +659,17 @@ ${hinweis}
 </div>
 
 ${rolle==="master" ? `
-<div style="margin:10px;">
 
-    <!-- ROW 1 -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+<div style="display:flex;gap:8px;margin:10px;">
 
-        <button onclick="toggleTimer()" id="timerBtn" style="flex:1;margin-right:5px;">
-            Start
-        </button>
-
-        <button onclick="resetTimer()" style="flex:1;margin-left:5px;">
-            Reset
-        </button>
-
-    </div>
-
-    <!-- ROW 2 -->
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-
-        <div style="font-weight:bold;">
-            👀 ${window.viewerCount || 0}
-        </div>
-
-        <button onclick="setTestZeit()" style="margin-left:10px;">
-            10s Test
-        </button>
-
-    </div>
+    <button style="flex:1;" onclick="toggleTimer()" id="timerBtn">Start</button>
+    <button style="flex:1;" onclick="resetTimer()">Reset</button>
+    <button style="flex:1;" onclick="setTestZeit()">10s</button>
 
 </div>
+
 ` : ``}
 
-<h2 id="zeit" style="text-align:center;">${formatZeit(timer)}</h2>
-<hr>
-`;
-
-spiele[aktuellesSpiel-1].felder.forEach((f,i)=>{
-html+=`
-<div style="border:1px solid #ccc;padding:12px;margin:10px;">
-<h3>Feld ${i+1}</h3>
-
-✅ ERSETZE DURCH DAS (SAUBER & STABIL):
 <div style="
     display:flex;
     justify-content:space-between;
@@ -707,50 +677,69 @@ html+=`
     margin:10px 0;
 ">
 
-    <!-- TEAM A -->
-    <div style="
-        flex:1;
-        text-align:left;
-        font-weight:bold;
-    ">
+    <div id="zeit" style="font-size:28px;font-weight:bold;">
+        ${formatZeit(timer)}
+    </div>
+
+    <div style="font-weight:bold;">
+        👀 ${window.viewerCount || 0}
+    </div>
+
+</div>
+`;
+
+spiele[aktuellesSpiel-1].felder.forEach((f,i)=>{
+
+html+=`
+<div style="
+    background:white;
+    border-radius:12px;
+    padding:12px;
+    margin:10px 0;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+">
+
+<h3>Feld ${i+1}</h3>
+
+<div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin:10px 0;
+">
+
+    <div style="flex:1;text-align:left;font-weight:bold;">
         ${paarungen[i].a}
     </div>
 
-    <!-- SCORE -->
-    <div style="
-        min-width:70px;
-        text-align:center;
-        font-size:24px;
-        font-weight:bold;
-    ">
+    <div style="min-width:70px;text-align:center;font-size:24px;font-weight:bold;">
         ${f.a} : ${f.b}
     </div>
 
-    <!-- TEAM B -->
-    <div style="
-        flex:1;
-        text-align:right;
-        font-weight:bold;
-    ">
+    <div style="flex:1;text-align:right;font-weight:bold;">
         ${paarungen[i].b}
     </div>
 
 </div>
 
-
 ${rolle !== "viewer" && !(counterGesperrtListe && counterGesperrtListe[deviceId])? `
-<div style="display:flex;justify-content:space-between;">
-<div>
-<button style="background:green;color:white;font-size:26px;margin:6px;" onclick="plusA(${i})">+</button>
-<button style="background:red;color:white;font-size:26px;margin:6px;" onclick="minusA(${i})">-</button>
-</div>
-<div>
-<button style="background:green;color:white;font-size:26px;margin:6px;" onclick="plusB(${i})">+</button>
-<button style="background:red;color:white;font-size:26px;margin:6px;" onclick="minusB(${i})">-</button>
-</div>
+<div style="display:flex;justify-content:space-between;margin-top:10px;">
+
+    <div style="display:flex;gap:6px;">
+        <button style="background:red;color:white;padding:8px;" onclick="minusA(${i})">-</button>
+        <button style="background:green;color:white;padding:8px;" onclick="plusA(${i})">+</button>
+    </div>
+
+    <div style="display:flex;gap:6px;">
+        <button style="background:green;color:white;padding:8px;" onclick="plusB(${i})">+</button>
+        <button style="background:red;color:white;padding:8px;" onclick="minusB(${i})">-</button>
+    </div>
+
 </div>
 ` : ``}
-</div>`;
+
+</div>
+`;
 });
 
 html+=`
