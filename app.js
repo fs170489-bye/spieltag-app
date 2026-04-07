@@ -113,12 +113,8 @@ function starteLiveListener(){
     liveRef.on("value", (snapshot)=>{
         let data = snapshot.val();
         if(!data){
-        document.body.innerHTML = `
-        <h2>Session beendet</h2>
-        <p>Bitte neuen QR-Code scannen.</p>
-        `;
-       return;
-        }
+        return;
+       }
         // 🔥 WENN ICH GEKICKT BIN → APP STOPPEN
        if(data && data.kicked && deviceId && data.kicked[deviceId]){
 
@@ -147,17 +143,6 @@ function starteLiveListener(){
 
         if(data.spielZeit) spielZeit = data.spielZeit;
 
-        if(!data){
-
-            if(liveRef){
-            liveRef.off();
-            liveRef = null;
-          }
-
-           sessionId = null;
-           localStorage.clear();
-           return;
-         }
           if(data.status === "ergebnis"){
            zeigeErgebnis();
            return;
@@ -185,11 +170,6 @@ function starteLiveListener(){
           if(data.gestarteteSpiele) gestarteteSpiele = data.gestarteteSpiele;
 
          counterGesperrtListe = data.counterGesperrtListe || {};
-
-          if(data.status === "ergebnis"){
-          zeigeErgebnis();
-          return;
-        }
 
         ladeSpiel();
     });
@@ -303,28 +283,40 @@ function pruefeSessionJoin(){
 
     if(joinSession){
 
-        sessionId = joinSession;
-        rolle = roleParam === "viewer" ? "viewer" : "counter";
-        joinTime = Date.now();
+    db.ref("sessions/"+joinSession+"/devices").once("value").then(snap=>{
 
-        // URL Parameter entfernen (wichtig!)
-        window.history.replaceState({}, document.title, window.location.pathname);
+    let data = snap.val() || {};
 
-        speichern();
+    let viewerCount = Object.values(data)
+        .filter(d => d.rolle === "viewer").length;
 
-        registriereGeraet();
-        starteTimerListener();
-        starteLiveListener();
-
-        // 🔥 EXTRA SYNC (iOS FIX)
-      setTimeout(()=>{
-      starteLiveListener();
-      starteTimerListener();
-     ladeSpiel();
-     }, 500);
-
-        document.body.innerHTML = "<h2>Verbunden... Lade Spiel...</h2>";
+    if(viewerCount >= 50){
+        alert("Maximale Zuschauer erreicht");
+        return; // 🔥 STOP – nichts passiert danach
     }
+
+    // ✅ NUR WENN OK → JOIN STARTEN
+    sessionId = joinSession;
+    rolle = roleParam === "viewer" ? "viewer" : "counter";
+    joinTime = Date.now();
+
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    speichern();
+
+    registriereGeraet();
+    starteTimerListener();
+    starteLiveListener();
+
+    setTimeout(()=>{
+        starteLiveListener();
+        starteTimerListener();
+        ladeSpiel();
+    }, 500);
+
+    document.body.innerHTML = "<h2>Verbunden... Lade Spiel...</h2>";
+    });
+ }
 }
 function nurMaster(){
 
@@ -638,50 +630,58 @@ ${hinweis}
     padding:14px;
     margin:10px 0;
     box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    position:relative;
 ">
 
-    <div style="font-size:12px;color:#666;margin-bottom:6px;">
-        Tendenzwertung
+<div style="font-size:12px;color:#666;margin-bottom:6px;">
+    Spiel ${aktuellesSpiel} – Tendenzwertung
+</div>
+
+<div style="font-weight:bold;">
+
+    <div style="display:flex;justify-content:space-between;">
+        <span>${teamA}</span>
+        <span>${z.pa}</span>
     </div>
 
-    <div style="
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        font-size:18px;
-        font-weight:bold;
-    ">
-        <span>${teamA}</span>
-        <span>${z.pa} : ${z.pb}</span>
+    <div style="display:flex;justify-content:space-between;margin-top:4px;">
         <span>${teamB}</span>
+        <span>${z.pb}</span>
     </div>
 
 </div>
 
 ${rolle==="master" ? `
+<div style="position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;">
 
-<div style="display:flex;gap:8px;margin:10px;">
+    <button onclick="setTestZeit()" style="font-size:12px;padding:4px 6px;">
+        10s
+    </button>
 
-    <button style="flex:1;" onclick="toggleTimer()" id="timerBtn">Start</button>
-    <button style="flex:1;" onclick="resetTimer()">Reset</button>
-    <button style="flex:1;" onclick="setTestZeit()">10s</button>
+    <button onclick="resetTimer()" style="font-size:12px;padding:4px 6px;">
+        Reset
+    </button>
 
 </div>
-
 ` : ``}
 
 <div style="
     display:flex;
-    justify-content:space-between;
     align-items:center;
+    justify-content:space-between;
+    gap:10px;
     margin:10px 0;
 ">
 
-    <div id="zeit" style="font-size:28px;font-weight:bold;">
+    <button onclick="toggleTimer()" id="timerBtn" style="flex:1;">
+        Start
+    </button>
+
+    <div id="zeit" style="font-size:26px;font-weight:bold;text-align:center;flex:1;">
         ${formatZeit(timer)}
     </div>
 
-    <div style="font-weight:bold;">
+    <div style="font-weight:bold;flex:1;text-align:right;">
         👀 ${window.viewerCount || 0}
     </div>
 
@@ -727,11 +727,11 @@ ${rolle !== "viewer" && !(counterGesperrtListe && counterGesperrtListe[deviceId]
 
     <div style="display:flex;gap:6px;">
         <button style="background:red;color:white;padding:8px;" onclick="minusA(${i})">-</button>
-        <button style="background:green;color:white;padding:8px;" onclick="plusA(${i})">+</button>
+        <button style="background:green;color:white;padding:14px 18px;font-size:22px;" onclick="plusA(${i})">+</button>
     </div>
 
     <div style="display:flex;gap:6px;">
-        <button style="background:green;color:white;padding:8px;" onclick="plusB(${i})">+</button>
+        <button style="background:green;color:white;padding:14px 18px;font-size:22px;" onclick="plusB(${i})">+</button>
         <button style="background:red;color:white;padding:8px;" onclick="minusB(${i})">-</button>
     </div>
 
@@ -921,7 +921,7 @@ function resetTimer(){
     db.ref("sessions/"+sessionId+"/timer").set({
         start: Date.now(),
         running: false,
-        value: 0
+        value: spielZeit
     });
 }
     ladeSpiel();
@@ -1098,7 +1098,13 @@ function zeigeDashboard(){
 
     if(!nurMaster()) return;
 
-    db.ref("sessions/"+sessionId+"/devices").on("value",(snap)=>{
+    if(window.dashboardRef){
+        window.dashboardRef.off(); // 🔥 WICHTIG
+    }
+
+    window.dashboardRef = db.ref("sessions/"+sessionId+"/devices");
+
+    window.dashboardRef.on("value",(snap)=>{
 
         let data = snap.val() || {};
         let html = `<h3>Counter Geräte</h3>`;
@@ -1232,13 +1238,12 @@ document.addEventListener("visibilitychange", () => {
 
         if(sessionId){
 
-            // 🔥 GANZ WICHTIG
-            registriereGeraet();   // ← DAS FEHLT BEI DIR
+            registriereGeraet();   // 🔥 DAS IST DER FIX
 
             starteLiveListener();
             starteTimerListener();
 
-            ladeSpiel();
+            ladeSpiel();           // 🔥 GANZ WICHTIG
         }
     }
 });
