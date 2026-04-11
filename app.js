@@ -290,10 +290,10 @@ function pruefeSessionJoin(){
     let viewerCount = Object.values(data)
         .filter(d => d.rolle === "viewer").length;
 
-    if(viewerCount >= 50){
-        alert("Maximale Zuschauer erreicht");
-        return; // 🔥 STOP – nichts passiert danach
-    }
+  if(viewerCount >= 50){
+    alert("Maximale Zuschauer erreicht");
+    throw new Error("Limit erreicht"); // 🔥 STOPPT ALLES
+}
 
     // ✅ NUR WENN OK → JOIN STARTEN
     sessionId = joinSession;
@@ -613,9 +613,7 @@ if(modus === "twin" && aktuellesSpiel === 3){
 
 if(rolle === "viewer"){
     viewerInfo = `<div style="background:#eee;padding:10px;margin:10px;">👀 Zuschauer-Modus</div>`;
-}
-
-if(counterGesperrtListe && counterGesperrtListe ["ALL"] && rolle === "counter"){
+} else if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter"){
     viewerInfo = `<div style="background:#ffcccc;padding:10px;margin:10px;">🔒 Counter gesperrt</div>`;
 }
 
@@ -624,35 +622,8 @@ let html=`
 ${viewerInfo}
 ${hinweis}
 
-<div style="
-    background:white;
-    border-radius:14px;
-    padding:14px;
-    margin:10px 0;
-    box-shadow:0 2px 8px rgba(0,0,0,0.1);
-    position:relative;
-">
-
-<div style="font-size:12px;color:#666;margin-bottom:6px;">
-    Spiel ${aktuellesSpiel} – Tendenzwertung
-</div>
-
-<div style="font-weight:bold;">
-
-    <div style="display:flex;justify-content:space-between;">
-        <span>${teamA}</span>
-        <span>${z.pa}</span>
-    </div>
-
-    <div style="display:flex;justify-content:space-between;margin-top:4px;">
-        <span>${teamB}</span>
-        <span>${z.pb}</span>
-    </div>
-
-</div>
-
 ${rolle==="master" ? `
-<div style="position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;">
+<div style="text-align:right;margin-bottom:10px;display:flex;flex-direction:column;gap:6px;">
 
     <button onclick="setTestZeit()" style="font-size:12px;padding:4px 6px;">
         10s
@@ -666,6 +637,74 @@ ${rolle==="master" ? `
 ` : ``}
 
 <div style="
+    background:white;
+    border-radius:14px;
+    padding:14px;
+    margin:10px 0;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+">
+
+<div style="font-size:12px;color:#666;margin-bottom:6px;">
+    Spiel ${aktuellesSpiel} – Tendenzwertung
+</div>
+
+<div style="font-weight:bold;">
+
+    <div style="
+        display:flex;
+        justify-content:space-between;
+        gap:10px;
+    ">
+
+        <!-- LINKS -->
+        <div style="
+            flex:1;
+            text-align:left;
+            word-break:break-word;
+        ">
+            ${teamA}
+        </div>
+
+        <!-- SCORE -->
+        <div style="
+            width:30px;
+            text-align:center;
+        ">
+            ${z.pa}
+        </div>
+
+    </div>
+
+    <div style="
+        display:flex;
+        justify-content:space-between;
+        gap:10px;
+        margin-top:4px;
+    ">
+
+        <!-- LINKS -->
+        <div style="
+            flex:1;
+            text-align:left;
+            word-break:break-word;
+        ">
+            ${teamB}
+        </div>
+
+        <!-- SCORE -->
+        <div style="
+            width:30px;
+            text-align:center;
+        ">
+            ${z.pb}
+        </div>
+
+    </div>
+
+</div>
+
+${rolle==="master" ? `
+<div style="
     display:flex;
     align-items:center;
     justify-content:space-between;
@@ -673,7 +712,7 @@ ${rolle==="master" ? `
     margin:10px 0;
 ">
 
-    <button onclick="toggleTimer()" id="timerBtn" style="flex:1;">
+    <button onclick="toggleTimer()" id="timerBtnMain" style="flex:1;">
         Start
     </button>
 
@@ -682,10 +721,23 @@ ${rolle==="master" ? `
     </div>
 
     <div style="font-weight:bold;flex:1;text-align:right;">
-        👀 ${window.viewerCount || 0}
+        👀 ${(window.viewerCount ?? 0)}
     </div>
 
 </div>
+` : `
+<div style="
+    display:flex;
+    justify-content:center;
+    margin:10px 0;
+">
+
+    <div id="zeit" style="font-size:26px;font-weight:bold;">
+        ${formatZeit(timer)}
+    </div>
+
+</div>
+`}
 `;
 
 spiele[aktuellesSpiel-1].felder.forEach((f,i)=>{
@@ -722,7 +774,7 @@ html+=`
 
 </div>
 
-${rolle !== "viewer" && !(counterGesperrtListe && counterGesperrtListe[deviceId])? `
+${rolle !== "viewer" && deviceId && !(counterGesperrtListe?.[deviceId]) ? `
 <div style="display:flex;justify-content:space-between;margin-top:10px;">
 
     <div style="display:flex;gap:6px;">
@@ -750,13 +802,16 @@ ${rolle==="master" ? `
     <button onclick="toggleQR('viewer')">QR Zuschauer</button>
     <button onclick="zeigeDashboard()">Dashboard</button>
     <button onclick="toggleCounterSperre()">
-    ${counterGesperrtListe && counterGesperrtListe["ALL"] ? "Counter freigeben" : "Counter sperren"}
+        ${counterGesperrtListe && counterGesperrtListe["ALL"] 
+            ? "Counter freigeben" 
+            : "Counter sperren"}
     </button>
-    ` : rolle==="viewer" ? `
+` : (rolle==="viewer" ? `
     <button onclick="toggleQR('viewer')">Zuschauer teilen</button>
-` : ``}
+` : ``)}
 `;
-document.body.innerHTML=html;
+
+document.body.innerHTML = html;
 }
 
 /* ---------- TORE ---------- */
@@ -820,11 +875,11 @@ function toggleTimer(){
 
     if(running){
         pauseTimer();
-        let btn = document.getElementById("timerBtn");
+        let btn = document.getElementById("timerBtnMain");
         if(btn) btn.innerText = "Start";
     } else {
         startTimer();
-        let btn = document.getElementById("timerBtn");
+        let btn = document.getElementById("timerBtnMain");
         if(btn) btn.innerText = "Pause";
     }
 }
