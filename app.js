@@ -171,7 +171,9 @@ function starteLiveListener(){
 
          counterGesperrtListe = data.counterGesperrtListe || {};
 
+        if(!qrScreenAktiv){
         ladeSpiel();
+       }
     });
 }
 
@@ -328,7 +330,7 @@ function nurMaster(){
 }
 
 function toggleQR(modus){
-
+    qrScreenAktiv = true;
     if(!sessionId){
         alert("Erst Live-Session starten");
         return;
@@ -344,7 +346,7 @@ function toggleQR(modus){
     }
     if(window.qrTimeout){
     clearTimeout(window.qrTimeout);
-    }
+}
 
     qrModus = modus;
 
@@ -366,12 +368,15 @@ function toggleQR(modus){
     }, 50);
 
     // ⬇️ AUTO CLOSE
-    window.qrTimeout = setTimeout(()=>{
+ window.qrTimeout = setTimeout(()=>{
     let box = document.getElementById("qrContainer");
     if(box){
         box.remove();
         qrModus = null;
     }
+
+    qrScreenAktiv = false; // 🔥 WICHTIG
+
 }, 45000);
     let info = document.createElement("div");
     info.innerText = modus === "viewer"
