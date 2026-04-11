@@ -329,16 +329,6 @@ function nurMaster(){
 
 function toggleQR(modus){
 
-    new QRCode(div, url);
-
-    setTimeout(()=>{
-    let box = document.getElementById("qrContainer");
-    if(box){
-        box.remove();
-        qrModus = null;
-    }
-    }, 45000); // 45 Sekunden 
-
     if(!sessionId){
         alert("Erst Live-Session starten");
         return;
@@ -368,7 +358,18 @@ function toggleQR(modus){
     div.style.textAlign = "center";
     document.body.appendChild(div);
 
+    setTimeout(()=>{
     new QRCode(div, url);
+    }, 50);
+
+    // ⬇️ AUTO CLOSE
+    setTimeout(()=>{
+    let box = document.getElementById("qrContainer");
+    if(box){
+        box.remove();
+        qrModus = null;
+    }
+    }, 45000);
     let info = document.createElement("div");
     info.innerText = modus === "viewer"
     ? "Zuschauer einladen"
@@ -604,22 +605,7 @@ function ladeSpiel(){
 
 let paarungen=getPaarungen();
 let z=berechneZwischenstand();
-let hinweis = "";
 let viewerInfo = "";
-
-if(modus === "twin" && aktuellesSpiel === 3){
-    hinweis = `
-        <div style="
-            background:#ffeeba;
-            padding:12px;
-            margin:10px 0;
-            font-weight:bold;
-            border-radius:8px;
-        ">
-            ⚠️ Vor Spielbeginn 2–4 Spieler tauschen!
-        </div>
-    `;
-}
 
 if(rolle === "viewer"){
     viewerInfo = `<div style="background:#eee;padding:10px;margin:10px;">👀 Zuschauer-Modus</div>`;
@@ -628,23 +614,20 @@ if(rolle === "viewer"){
 }
 
 let html=`
-<h1>Spiel ${aktuellesSpiel}</h1>
-${viewerInfo}
-${hinweis}
 
-${rolle==="master" ? `
-<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px;">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
 
-    <button onclick="setTestZeit()" style="font-size:12px;padding:4px 6px;">
-        10s
-    </button>
+    <h2 style="margin:0;">Spiel ${aktuellesSpiel}</h2>
 
-    <button onclick="resetTimer()" style="font-size:12px;padding:4px 6px;">
-        Reset
-    </button>
+    ${rolle==="master" ? `
+    <div style="display:flex;gap:6px;">
+        <button onclick="setTestZeit()" style="font-size:12px;padding:4px 6px;">Test 10sec</button>
+        <button onclick="resetTimer()" style="font-size:12px;padding:4px 6px;">Reset</button>
+    </div>
+    ` : ``}
 
 </div>
-` : ``}
+${viewerInfo}
 
 <div style="
     background:white;
@@ -750,6 +733,21 @@ ${rolle==="master" ? `
 `}
 `;
 
+if(modus === "twin" && aktuellesSpiel === 3){
+    html += `
+    <div style="
+        background:#ffeeba;
+        padding:10px;
+        margin:6px 0;
+        font-weight:bold;
+        border-radius:8px;
+        text-align:center;
+    ">
+        ⚠️ Vor Spielbeginn 2–4 Spieler tauschen!
+    </div>
+    `;
+}
+
 spiele[aktuellesSpiel-1].felder.forEach((f,i)=>{
 
 html+=`
@@ -784,7 +782,7 @@ html+=`
 
 </div>
 
-${rolle !== "viewer" && deviceId && !(counterGesperrtListe?.[deviceId]) ? `
+${rolle !== "viewer" && !(counterGesperrtListe?.[deviceId]) ? `
 <div style="display:flex;justify-content:space-between;margin-top:10px;">
 
     <div style="display:flex;gap:6px;">
@@ -1110,15 +1108,17 @@ async function exportierePDF(){
         else {pa++;pb++;}
     }));
 
-    pdf.setFontSize(18);
-    pdf.text("Spieltag Ergebnis", 20, 20);
+   pdf.setFont("helvetica", "bold");
 
-    pdf.setFontSize(14);
-    pdf.text(`${teamA}: ${pa}`, 20, 40);
-    pdf.text(`${teamB}: ${pb}`, 20, 50);
+   pdf.setFontSize(22);
+   pdf.text("Spieltag Ergebnis", 20, 20);
 
-    pdf.setFontSize(10);
-    pdf.text("Erstellt mit Spieltag-App", 20, 70);
+   pdf.setFontSize(20);
+   pdf.text(`${teamA}: ${pa}`, 20, 50);
+   pdf.text(`${teamB}: ${pb}`, 20, 65);
+
+   pdf.setFontSize(12);
+   pdf.text("Erstellt mit Spieltag-App", 20, 90);
 
     pdf.save("ergebnis.pdf");
 }
