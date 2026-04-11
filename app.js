@@ -342,6 +342,9 @@ function toggleQR(modus){
         qrModus = null;
         return;
     }
+    if(window.qrTimeout){
+    clearTimeout(window.qrTimeout);
+    }
 
     qrModus = modus;
 
@@ -363,13 +366,13 @@ function toggleQR(modus){
     }, 50);
 
     // ⬇️ AUTO CLOSE
-    setTimeout(()=>{
+    window.qrTimeout = setTimeout(()=>{
     let box = document.getElementById("qrContainer");
     if(box){
         box.remove();
         qrModus = null;
     }
-    }, 45000);
+}, 45000);
     let info = document.createElement("div");
     info.innerText = modus === "viewer"
     ? "Zuschauer einladen"
