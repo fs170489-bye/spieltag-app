@@ -329,6 +329,16 @@ function nurMaster(){
 
 function toggleQR(modus){
 
+    new QRCode(div, url);
+
+    setTimeout(()=>{
+    let box = document.getElementById("qrContainer");
+    if(box){
+        box.remove();
+        qrModus = null;
+    }
+    }, 45000); // 45 Sekunden 
+
     if(!sessionId){
         alert("Erst Live-Session starten");
         return;
@@ -623,7 +633,7 @@ ${viewerInfo}
 ${hinweis}
 
 ${rolle==="master" ? `
-<div style="text-align:right;margin-bottom:10px;display:flex;flex-direction:column;gap:6px;">
+<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px;">
 
     <button onclick="setTestZeit()" style="font-size:12px;padding:4px 6px;">
         10s
@@ -640,7 +650,7 @@ ${rolle==="master" ? `
     background:white;
     border-radius:14px;
     padding:14px;
-    margin:10px 0;
+    margin:6px 0;
     box-shadow:0 2px 8px rgba(0,0,0,0.1);
 ">
 
@@ -709,10 +719,10 @@ ${rolle==="master" ? `
     align-items:center;
     justify-content:space-between;
     gap:10px;
-    margin:10px 0;
+    margin:6px 0;
 ">
 
-    <button onclick="toggleTimer()" id="timerBtnMain" style="flex:1;">
+    <button onclick="toggleTimer()" id="timerBtnMain" style="flex:0.8;padding:8px;font-size:14px;">
         Start
     </button>
 
@@ -721,7 +731,7 @@ ${rolle==="master" ? `
     </div>
 
     <div style="font-weight:bold;flex:1;text-align:right;">
-        👀 ${(window.viewerCount ?? 0)}
+        👀 ${window.viewerCount ?? 0}
     </div>
 
 </div>
@@ -729,7 +739,7 @@ ${rolle==="master" ? `
 <div style="
     display:flex;
     justify-content:center;
-    margin:10px 0;
+    margin:6px 0;
 ">
 
     <div id="zeit" style="font-size:26px;font-weight:bold;">
@@ -747,7 +757,7 @@ html+=`
     background:white;
     border-radius:12px;
     padding:12px;
-    margin:10px 0;
+    margin:6px 0;
     box-shadow:0 2px 6px rgba(0,0,0,0.1);
 ">
 
@@ -757,7 +767,7 @@ html+=`
     display:flex;
     justify-content:space-between;
     align-items:center;
-    margin:10px 0;
+    margin:6px 0;
 ">
 
     <div style="flex:1;text-align:left;font-weight:bold;">
@@ -1087,15 +1097,31 @@ function zeigeErgebnis(){
         `}
     `;
 }
-async function exportierePDF(){
-const { jsPDF } = window.jspdf;
-const canvas = await html2canvas(document.body);
-const img = canvas.toDataURL("image/png");
-const pdf=new jsPDF();
-pdf.addImage(img,"PNG",0,0);
-pdf.save("spieltag.pdf");
-}
 
+async function exportierePDF(){
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+
+    let pa=0,pb=0;
+    spiele.forEach(s=>s.felder.forEach(f=>{
+        if(f.a>f.b) pa++;
+        else if(f.b>f.a) pb++;
+        else {pa++;pb++;}
+    }));
+
+    pdf.setFontSize(18);
+    pdf.text("Spieltag Ergebnis", 20, 20);
+
+    pdf.setFontSize(14);
+    pdf.text(`${teamA}: ${pa}`, 20, 40);
+    pdf.text(`${teamB}: ${pb}`, 20, 50);
+
+    pdf.setFontSize(10);
+    pdf.text("Erstellt mit Spieltag-App", 20, 70);
+
+    pdf.save("ergebnis.pdf");
+}
 function neuerSpieltag(){
 
     if(sessionId && rolle==="master"){
