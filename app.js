@@ -150,7 +150,12 @@ function starteLiveListener(){
           if(data.teamA) teamA = data.teamA;
           if(data.teamB) teamB = data.teamB;
 
-          if(data.spiele) spiele = data.spiele;
+          if(data.spiele){
+          // 🔥 Nur übernehmen wenn NICHT gerade lokal geändert
+         if(!window.localUpdateActive){
+         spiele = data.spiele;
+         }
+         }
           if(data.aktuellesSpiel !== undefined){
 
           if(aktuellesSpiel !== data.aktuellesSpiel){
@@ -330,25 +335,18 @@ function nurMaster(){
 }
 
 function toggleQR(modus){
-    qrScreenAktiv = true;
+
     if(!sessionId){
         alert("Erst Live-Session starten");
         return;
     }
 
-    let bestehend = document.getElementById("qrContainer");
-
-    // Toggle aus
+    // 🔁 Wenn schon offen → schließen
+    let bestehend = document.getElementById("qrOverlay");
     if(bestehend){
         bestehend.remove();
-        qrModus = null;
         return;
     }
-    if(window.qrTimeout){
-    clearTimeout(window.qrTimeout);
-}
-
-    qrModus = modus;
 
     let url = location.origin + location.pathname + "?session=" + sessionId;
 
@@ -356,35 +354,63 @@ function toggleQR(modus){
         url += "&role=viewer";
     }
 
-    let div = document.createElement("div");
-    div.id = "qrContainer";
-    div.style.marginTop = "20px";
+    // 🔥 OVERLAY ERSTELLEN
+    let overlay = document.createElement("div");
+    overlay.id = "qrOverlay";
 
-    div.style.textAlign = "center";
-    document.body.appendChild(div);
+    overlay.style = `
+        position:fixed;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background:rgba(0,0,0,0.7);
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        z-index:9999;
+    `;
 
+    // 🔥 BOX
+    let box = document.createElement("div");
+    box.style = `
+        background:white;
+        padding:20px;
+        border-radius:16px;
+        text-align:center;
+        box-shadow:0 10px 30px rgba(0,0,0,0.3);
+    `;
+
+    let qrDiv = document.createElement("div");
+    box.appendChild(qrDiv);
+
+    let text = document.createElement("div");
+    text.style.marginTop = "10px";
+    text.innerText = modus === "viewer"
+        ? "Zuschauer einladen"
+        : "Counter verbinden";
+
+    box.appendChild(text);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    // QR erzeugen
+    new QRCode(qrDiv, url);
+
+    // 🔥 Klick außerhalb schließt
+    overlay.onclick = (e)=>{
+        if(e.target === overlay){
+            overlay.remove();
+        }
+    };
+
+    // 🔥 AUTO CLOSE (45s bleibt!)
     setTimeout(()=>{
-    new QRCode(div, url);
-    }, 50);
-
-    // ⬇️ AUTO CLOSE
- window.qrTimeout = setTimeout(()=>{
-    let box = document.getElementById("qrContainer");
-    if(box){
-        box.remove();
-        qrModus = null;
-    }
-
-    qrScreenAktiv = false; // 🔥 WICHTIG
-
-}, 45000);
-    let info = document.createElement("div");
-    info.innerText = modus === "viewer"
-    ? "Zuschauer einladen"
-    : "Counter verbinden";
-
-    info.style.marginTop = "10px";
-    div.appendChild(info);
+        if(document.getElementById("qrOverlay")){
+            overlay.remove();
+        }
+    }, 45000);
 }
 
 /* ---------- SIGNAL ---------- */
@@ -845,42 +871,62 @@ function plusA(i){
     // 🔒 Counter gesperrt?
     if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
+    window.localUpdateActive = true;
 
     spiele[aktuellesSpiel-1].felder[i].a++;
     speichern();
     updateLiveSpiele();
+    ladeSpiel(); // 🔥 DAS IST DER WICHTIGE TEIL
+        setTimeout(()=>{
+        window.localUpdateActive = false;
+    }, 300);
 }
 
 function minusA(i){
     // 🔒 Counter gesperrt?
     if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
+    window.localUpdateActive = true;
 
     if(spiele[aktuellesSpiel-1].felder[i].a>0)
         spiele[aktuellesSpiel-1].felder[i].a--;
     speichern();
     updateLiveSpiele();
+    ladeSpiel(); // 🔥 DAS IST DER WICHTIGE TEIL
+        setTimeout(()=>{
+        window.localUpdateActive = false;
+    }, 300);
 }
 
 function plusB(i){
     // 🔒 Counter gesperrt?
     if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
+    window.localUpdateActive = true;
 
     spiele[aktuellesSpiel-1].felder[i].b++;
     speichern();
     updateLiveSpiele();
+    ladeSpiel(); // 🔥 DAS IST DER WICHTIGE TEIL
+        setTimeout(()=>{
+        window.localUpdateActive = false;
+    }, 300);
 }
 
 function minusB(i){
     // 🔒 Counter gesperrt?
     if(counterGesperrtListe && counterGesperrtListe["ALL"] && rolle === "counter") return;
     if(!timerInterval && rolle !== "master") return;
+    window.localUpdateActive = true;
 
     if(spiele[aktuellesSpiel-1].felder[i].b>0)
         spiele[aktuellesSpiel-1].felder[i].b--;
     speichern();
+    ladeSpiel(); // 🔥 DAS IST DER WICHTIGE TEIL
     updateLiveSpiele();
+        setTimeout(()=>{
+        window.localUpdateActive = false;
+    }, 300);
 }
 
 function toggleTimer(){
