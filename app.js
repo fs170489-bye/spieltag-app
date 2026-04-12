@@ -817,62 +817,16 @@ html+=`
 </div>
 
 ${rolle !== "viewer" && !(counterGesperrtListe?.[deviceId]) ? `
-<div style="display:flex;justify-content:space-between;margin-top:10px;gap:10px;">
+<div style="display:flex;justify-content:space-between;margin-top:10px;">
 
-    <!-- TEAM A -->
-    <div style="display:flex;flex:1;gap:8px;">
-
-        <!-- MINUS -->
-        <button style="
-            background:#e53935;
-            color:white;
-            width:50px;
-            height:60px;
-            border:none;
-            border-radius:12px;
-            font-size:20px;
-        " onclick="minusA(${i})">-</button>
-
-        <!-- PLUS (GROSS & ZUR MITTE) -->
-        <button style="
-            background:#43a047;
-            color:white;
-            flex:1;
-            height:60px;
-            border:none;
-            border-radius:14px;
-            font-size:28px;
-            font-weight:bold;
-        " onclick="plusA(${i})">+</button>
-
+    <div style="display:flex;gap:6px;">
+        <button style="background:red;color:white;padding:8px;" onclick="minusA(${i})">-</button>
+        <button style="background:green;color:white;padding:14px 28px;font-size:22px;" onclick="plusA(${i})">+</button>
     </div>
 
-    <!-- TEAM B -->
-    <div style="display:flex;flex:1;gap:8px;">
-
-        <!-- PLUS (GROSS & ZUR MITTE) -->
-        <button style="
-            background:#43a047;
-            color:white;
-            flex:1;
-            height:60px;
-            border:none;
-            border-radius:14px;
-            font-size:28px;
-            font-weight:bold;
-        " onclick="plusB(${i})">+</button>
-
-        <!-- MINUS -->
-        <button style="
-            background:#e53935;
-            color:white;
-            width:50px;
-            height:60px;
-            border:none;
-            border-radius:12px;
-            font-size:20px;
-        " onclick="minusB(${i})">-</button>
-
+    <div style="display:flex;gap:6px;">
+        <button style="background:green;color:white;padding:14px 28px;font-size:22px;" onclick="plusB(${i})">+</button>
+        <button style="background:red;color:white;padding:8px;" onclick="minusB(${i})">-</button>
     </div>
 
 </div>
