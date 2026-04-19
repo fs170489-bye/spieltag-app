@@ -176,16 +176,16 @@ function starteLiveListener(){
 
          counterGesperrtListe = data.counterGesperrtListe || {};
 
-        if(!qrScreenAktiv){
         ladeSpiel();
-       }
+       
     });
 }
 
 function starteTimerListener(){
 
     if(!sessionId) return;
-
+     // 🔥 HIER REIN
+    db.ref("sessions/"+sessionId+"/timer").off();
     db.ref("sessions/"+sessionId+"/timer").on("value",(snap)=>{
 
         let data = snap.val();
@@ -219,29 +219,24 @@ function starteTimerListener(){
         }
 
         // Wenn Timer läuft
-        if(data.running){
+       if(data.running){
 
-            timerInterval = setInterval(()=>{
+    timerInterval = setInterval(()=>{
 
-                if(data.start){
-                timer = data.value - Math.floor((Date.now() - data.start)/1000);
-                } else {
-                timer = data.value || spielZeit;
-                }
-
-                let el = document.getElementById("zeit");
-                if(el){
-                    el.innerText = formatZeit(timer);
-
-                    if(timer <= 60){
-                        el.style.color = (timer%2===0) ? "red" : "black";
-                    } else {
-                        el.style.color = "black";
-                    }
-                }
-
-            },1000);
+        if(data.start){
+            // 🔥 ZEIT IMMER LIVE BERECHNEN (kein Drift!)
+            timer = data.value - Math.floor((Date.now() - data.start)/1000);
+        } else {
+            timer = data.value || spielZeit;
         }
+
+        let el = document.getElementById("zeit");
+        if(el){
+            el.innerText = formatZeit(timer);
+        }
+
+    }, 500); // 🔥 schneller = stabiler
+}
 
         // 🔥 WICHTIG: End-Signal hier global auslösen
         if(!data.running && timer <= 0 && rolle !== "viewer"){
@@ -341,12 +336,25 @@ function toggleQR(modus){
         return;
     }
 
-    // 🔁 Wenn schon offen → schließen
     let bestehend = document.getElementById("qrOverlay");
+
+    // 🔁 SCHLIESSEN
     if(bestehend){
         bestehend.remove();
+        qrModus = null;
+
+        // 🔥 BUTTON TEXT RESET
+        let btnC = document.getElementById("qrBtnCounter");
+        let btnV = document.getElementById("qrBtnViewer");
+
+        if(btnC) btnC.innerText = "QR Counter";
+        if(btnV) btnV.innerText = "QR Zuschauer";
+
         return;
     }
+
+    // 🔁 ÖFFNEN
+    qrModus = modus;
 
     let url = location.origin + location.pathname + "?session=" + sessionId;
 
@@ -354,7 +362,7 @@ function toggleQR(modus){
         url += "&role=viewer";
     }
 
-    // 🔥 OVERLAY ERSTELLEN
+    // 🔥 OVERLAY
     let overlay = document.createElement("div");
     overlay.id = "qrOverlay";
 
@@ -395,22 +403,25 @@ function toggleQR(modus){
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
-    // QR erzeugen
     new QRCode(qrDiv, url);
+
+    // 🔥 BUTTON TEXT SETZEN
+    let btnC = document.getElementById("qrBtnCounter");
+    let btnV = document.getElementById("qrBtnViewer");
+
+    if(btnC) btnC.innerText = modus === "counter" ? "QR schließen" : "QR Counter";
+    if(btnV) btnV.innerText = modus === "viewer" ? "QR schließen" : "QR Zuschauer";
 
     // 🔥 Klick außerhalb schließt
     overlay.onclick = (e)=>{
         if(e.target === overlay){
             overlay.remove();
+            qrModus = null;
+
+            if(btnC) btnC.innerText = "QR Counter";
+            if(btnV) btnV.innerText = "QR Zuschauer";
         }
     };
-
-    // 🔥 AUTO CLOSE (45s bleibt!)
-    setTimeout(()=>{
-        if(document.getElementById("qrOverlay")){
-            overlay.remove();
-        }
-    }, 45000);
 }
 
 /* ---------- SIGNAL ---------- */
@@ -420,6 +431,36 @@ function signalTonAbspielen(){
     const g=ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
     o.start(); o.stop(ctx.currentTime+0.4);
+}
+
+function zeigeOfflineBanner(){
+
+    let banner = document.getElementById("offlineBanner");
+
+    if(!navigator.onLine){
+
+        if(!banner){
+            banner = document.createElement("div");
+            banner.id = "offlineBanner";
+            banner.style = `
+                position:fixed;
+                top:0;
+                left:0;
+                width:100%;
+                background:red;
+                color:white;
+                text-align:center;
+                padding:6px;
+                z-index:9999;
+                font-weight:bold;
+            `;
+            banner.innerText = "⚠️ Keine Internetverbindung";
+            document.body.appendChild(banner);
+        }
+
+    } else {
+        if(banner) banner.remove();
+    }
 }
 
 async function keepScreenOn(){
@@ -602,7 +643,10 @@ function startSpieltag(){
 
     speichern();
     erstelleSession();     
-    keepScreenOn();   // 🔥 HIER  
+    setInterval(()=>{
+    keepScreenOn();
+    }, 20000); // 🔥 alle 20s erneuern
+    
    
 }
 /*-----------Neu------*/
@@ -840,8 +884,8 @@ html+=`
 ${rolle==="master" ? `
     <button onclick="vorherigesSpiel()">Zurück</button>
     <button onclick="naechstesSpiel()">Weiter</button>
-    <button onclick="toggleQR('counter')">QR Counter</button>
-    <button onclick="toggleQR('viewer')">QR Zuschauer</button>
+    <button onclick="toggleQR('counter')" id="qrBtnCounter">QR Counter</button>
+    <button onclick="toggleQR('viewer')" id="qrBtnViewer">QR Zuschauer</button>
     <button onclick="zeigeDashboard()">Dashboard</button>
     <button onclick="toggleCounterSperre()">
         ${counterGesperrtListe && counterGesperrtListe["ALL"] 
@@ -857,14 +901,20 @@ document.body.innerHTML = html;
 }
 
 /* ---------- TORE ---------- */
+let updateTimeout = null;
 function updateLiveSpiele(){
 
-    if(sessionId && navigator.onLine){
+    if(!sessionId || !navigator.onLine) return;
+
+    if(updateTimeout) clearTimeout(updateTimeout);
+
+    updateTimeout = setTimeout(()=>{
 
         db.ref("sessions/"+sessionId).update({
             spiele: spiele
         });
-    }
+
+    }, 100); // 🔥 sammelt Klicks
 }
 
 function plusA(i){
@@ -1329,18 +1379,25 @@ function springeZuSpiel(n){
 /* ---------- ONLINE / OFFLINE ---------- */
 window.addEventListener("online", ()=>{
 
-    alert("Internet wieder verbunden – Synchronisiere Daten");
+    console.log("Reconnect...");
 
     if(sessionId){
-        starteLiveListener();
 
+        registriereGeraet();
+
+        // 🔥 Listener neu starten
+        starteLiveListener();
+        starteTimerListener();
+
+        // 🔥 Sync pushen
         db.ref("sessions/"+sessionId).update({
             spiele: spiele,
             aktuellesSpiel: aktuellesSpiel,
             gestarteteSpiele: gestarteteSpiele
         });
-    }
 
+        ladeSpiel();
+    }
 });
 
 /* ---------- START ---------- */
@@ -1374,9 +1431,9 @@ document.addEventListener("visibilitychange", () => {
         if(sessionId){
 
             registriereGeraet();   // 🔥 DAS IST DER FIX
-
             starteLiveListener();
             starteTimerListener();
+            keepScreenOn(); // 🔥 WICHTIG
 
             ladeSpiel();           // 🔥 GANZ WICHTIG
         }
@@ -1391,6 +1448,21 @@ window.addEventListener("focus", () => {
         starteTimerListener();
     }
 });
+// 🔥 HIER EINFÜGEN (Bonus)
+window.addEventListener("online", zeigeOfflineBanner);
+window.addEventListener("offline", zeigeOfflineBanner);
+// 🔥 HIER EINFÜGEN
+setInterval(zeigeOfflineBanner, 2000);
+setInterval(()=>{
+
+    if(sessionId){
+
+        starteLiveListener();
+        starteTimerListener();
+
+    }
+
+}, 15000);
 
 // 🔥 AUTOCOMPLETE FUNKTION
 function zeigeVorschlaege(input, typ){
