@@ -22,9 +22,6 @@ let keepAliveInterval = null;
 let teamCache = [];
 let userId = null; // 🔥 WICHTIG für Login / Lizenzen
 
-const db = firebase.database();     // falls noch nicht vorhanden
-const auth = firebase.auth();       // 🔥 DAS IST DER WICHTIGE FIX
-
 /* ---------- SESSION ---------- */
 function erstelleSession(){
 
