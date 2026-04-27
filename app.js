@@ -22,6 +22,9 @@ let keepAliveInterval = null;
 let teamCache = [];
 let userId = null; // 🔥 WICHTIG für Login / Lizenzen
 
+const db = firebase.database();     // falls noch nicht vorhanden
+const auth = firebase.auth();       // 🔥 DAS IST DER WICHTIGE FIX
+
 /* ---------- SESSION ---------- */
 function erstelleSession(){
 
@@ -1474,15 +1477,20 @@ window.onload=function(){
 }
 
        // 🔥 LOGIN STATUS CHECK
-    auth.onAuthStateChanged(user => {
-        if(user){
-            userId = user.uid;
-            console.log("Eingeloggt:", userId);
-        } else {
-            userId = null;
-            console.log("Nicht eingeloggt");
-        }
-    });
+      auth.onAuthStateChanged(user => {
+      if(user){
+        userId = user.uid;
+
+        // 🔥 USER DATEN LADEN
+        db.ref("users/"+userId).once("value").then(snap=>{
+            let u = snap.val();
+            console.log("User:", u);
+        });
+
+    } else {
+        userId = null;
+    }
+});
 
     pruefeSessionJoin();
      if(laden() && sessionId){
