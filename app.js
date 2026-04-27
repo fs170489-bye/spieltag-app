@@ -20,6 +20,7 @@ let deviceId = localStorage.getItem("deviceId") || null;
 let wakeLock = null;
 let keepAliveInterval = null;
 let teamCache = [];
+let userId = null; // 🔥 WICHTIG für Login / Lizenzen
 
 /* ---------- SESSION ---------- */
 function erstelleSession(){
@@ -40,63 +41,67 @@ function erstelleSession(){
         return;
     }
 
-    // Neue Session ID
-    sessionId = Math.random().toString(36).substring(2,8);
+    // 🔥 ERST SESSION ID ERZEUGEN (lokal)
+    let neueSessionId = Math.random().toString(36).substring(2,8);
 
-    // 🔥 Session in Firebase erstellen
-    db.ref("sessions/"+sessionId).set({
-        spiele: spiele,
-        teamA: teamA,
-        teamB: teamB,
-        aktuellesSpiel: aktuellesSpiel,
-        gestarteteSpiele: gestarteteSpiele,
-        status: "spiel",
-        spielZeit: spielZeit,
-        counterGesperrt: false
-    });
-    db.ref("sessions/"+sessionId+"/timer").set({
-    start: Date.now(),
-    running: false,
-    value: spielZeit
-    });
+    // 🔥 LIZENZ CHECK VOR SESSION START
+    if(rolle === "master" && userId){
 
-    speichern();
+        db.ref("users/"+userId).once("value").then(snap=>{
 
-    // Listener starten
-    starteLiveListener();
-    starteTimerListener();
+            let user = snap.val();
 
-    // QR anzeigen
-    zeigeQRStartseite();
+            if(!user){
+                alert("Userdaten fehlen");
+                return;
+            }
 
-    alert("Live-Session gestartet: "+sessionId);
-}
-let liveRef = null;
+            if(user.usedLicenses >= user.licenses){
+                alert("Keine freie Lizenz verfügbar");
+                return;
+            }
 
-function zeigeQRStartseite(){
-    qrScreenAktiv = true;
+            // ✅ JETZT ERST SESSION SETZEN
+            sessionId = neueSessionId;
 
-    if(!sessionId){
-    alert("Keine Session aktiv");
-    return;
-}
+            // 🔥 Lizenz reservieren
+            db.ref("users/"+userId).update({
+                usedLicenses: (user.usedLicenses || 0) + 1,
+                activeSession: sessionId
+            });
 
-    // Nur Master darf QR sehen
-    if(rolle && rolle !== "master"){
-        ladeSpiel();
-        return;
+            // 🔥 HIER GEHT DEIN ALTER CODE WEITER ↓↓↓
+
+            db.ref("sessions/"+sessionId).set({
+                spiele: spiele,
+                teamA: teamA,
+                teamB: teamB,
+                aktuellesSpiel: aktuellesSpiel,
+                gestarteteSpiele: gestarteteSpiele,
+                status: "spiel",
+                spielZeit: spielZeit,
+                counterGesperrt: false
+            });
+
+            db.ref("sessions/"+sessionId+"/timer").set({
+                start: Date.now(),
+                running: false,
+                value: spielZeit
+            });
+
+            speichern();
+            starteLiveListener();
+            starteTimerListener();
+            zeigeQRStartseite();
+
+            alert("Live-Session gestartet: "+sessionId);
+        });
+
+        return; // 🔥 GANZ WICHTIG → stoppt doppelte Ausführung
     }
 
-    let url = location.origin + location.pathname + "?session=" + sessionId;
-
-    document.body.innerHTML = `
-        <h1>Counter verbinden</h1>
-        <div id="qrcode"></div>
-        <br>
-        <button onclick="ladeSpiel()">Weiter zum Spiel</button>
-    `;
-
-    new QRCode(document.getElementById("qrcode"), url);
+    // 🔥 FALLBACK (ohne Login)
+    sessionId = neueSessionId;
 }
 
 function starteLiveListener(){
@@ -219,15 +224,17 @@ function starteTimerListener(){
         }
 
         // Wenn Timer läuft
-       if(data.running){
+if(data.running){
+
+    let start = data.start;
+    let value = data.value;
 
     timerInterval = setInterval(()=>{
 
-        if(data.start){
-            // 🔥 ZEIT IMMER LIVE BERECHNEN (kein Drift!)
-            timer = data.value - Math.floor((Date.now() - data.start)/1000);
+        if(start){
+            timer = value - Math.floor((Date.now() - start)/1000);
         } else {
-            timer = data.value || spielZeit;
+            timer = value || spielZeit;
         }
 
         let el = document.getElementById("zeit");
@@ -235,7 +242,7 @@ function starteTimerListener(){
             el.innerText = formatZeit(timer);
         }
 
-    }, 500); // 🔥 schneller = stabiler
+    }, 500);
 }
 
         // 🔥 WICHTIG: End-Signal hier global auslösen
@@ -649,6 +656,39 @@ function startSpieltag(){
     
    
 }
+
+function register(email, password){
+
+    auth.createUserWithEmailAndPassword(email, password)
+    .then(user=>{
+
+        let uid = user.user.uid;
+
+        db.ref("users/"+uid).set({
+            email: email,
+            verein: "",
+            licenses: 2,          // 🔥 Standard Paket
+            usedLicenses: 0,
+            lizenzEnde: Date.now() + (365*24*60*60*1000),
+            createdAt: Date.now(),
+            activeSession: null
+        });
+
+        alert("Registriert!");
+    });
+}
+
+function login(email, password){
+
+    auth.signInWithEmailAndPassword(email, password)
+    .then(()=>{
+        alert("Eingeloggt");
+    })
+    .catch(err=>{
+        alert("Login Fehler: " + err.message);
+    });
+}
+
 /*-----------Neu------*/
 function setTestZeit(){
 
@@ -893,7 +933,9 @@ ${rolle==="master" ? `
             : "Counter sperren"}
     </button>
 ` : (rolle==="viewer" ? `
-    <button onclick="toggleQR('viewer')">Zuschauer teilen</button>
+    <button onclick="toggleQR('viewer')" id="qrBtnViewer">
+    ${qrModus === "viewer" ? "QR schließen" : "Zuschauer teilen"}
+    </button>
 ` : ``)}
 `;
 
@@ -1258,6 +1300,18 @@ function beendeSession(){
     if(sessionId){
         db.ref("sessions/"+sessionId).remove();
     }
+    // 🔥 Lizenz wieder freigeben
+     if(userId){
+    db.ref("users/"+userId).once("value").then(snap=>{
+
+        let user = snap.val();
+
+        db.ref("users/"+userId).update({
+            usedLicenses: Math.max(0, (user.usedLicenses || 1) - 1),
+            activeSession: null
+        });
+    });
+}
 
     // ALLES zurücksetzen
     if(liveRef){
@@ -1402,6 +1456,33 @@ window.addEventListener("online", ()=>{
 
 /* ---------- START ---------- */
 window.onload=function(){
+
+    // 🔥 SESSION RECOVERY
+       if(userId){
+        db.ref("users/"+userId+"/activeSession").once("value").then(snap=>{
+
+        let active = snap.val();
+
+        if(active && !sessionId){
+            sessionId = active;
+
+            starteLiveListener();
+            starteTimerListener();
+            ladeSpiel();
+        }
+    });
+}
+
+       // 🔥 LOGIN STATUS CHECK
+    auth.onAuthStateChanged(user => {
+        if(user){
+            userId = user.uid;
+            console.log("Eingeloggt:", userId);
+        } else {
+            userId = null;
+            console.log("Nicht eingeloggt");
+        }
+    });
 
     pruefeSessionJoin();
      if(laden() && sessionId){
