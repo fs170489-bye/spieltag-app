@@ -26,7 +26,6 @@ let liveRef = null; // 🔥 FIX
 /* ---------- SESSION ---------- */
 function erstelleSession(){
 
-    // 🔥 Alte Session sauber zurücksetzen
     if(liveRef){
         liveRef.off();
         liveRef = null;
@@ -38,14 +37,13 @@ function erstelleSession(){
     }
 
     if(!teamA || !teamB){
-        alert("Bitte zuerst Spieltag starten");
+        alert("Bitte zuerst Teams eingeben");
         return;
     }
 
-    // 🔥 ERST SESSION ID ERZEUGEN (lokal)
     let neueSessionId = Math.random().toString(36).substring(2,8);
 
-    // 🔥 LIZENZ CHECK VOR SESSION START
+    // 🔥 FALL 1: MIT LOGIN
     if(rolle === "master" && userId){
 
         db.ref("users/"+userId).once("value").then(snap=>{
@@ -62,49 +60,50 @@ function erstelleSession(){
                 return;
             }
 
-            // ✅ JETZT ERST SESSION SETZEN
             sessionId = neueSessionId;
 
-            // 🔥 Lizenz reservieren
             db.ref("users/"+userId).update({
                 usedLicenses: (user.usedLicenses || 0) + 1,
                 activeSession: sessionId
             });
 
-            // 🔥 HIER GEHT DEIN ALTER CODE WEITER ↓↓↓
-
-            db.ref("sessions/"+sessionId).set({
-                spiele: spiele,
-                teamA: teamA,
-                teamB: teamB,
-                aktuellesSpiel: aktuellesSpiel,
-                gestarteteSpiele: gestarteteSpiele,
-                status: "spiel",
-                spielZeit: spielZeit,
-                counterGesperrt: false
-            });
-
-            db.ref("sessions/"+sessionId+"/timer").set({
-                start: Date.now(),
-                running: false,
-                value: spielZeit
-            });
-
-            speichern();
-            starteLiveListener();
-            starteTimerListener();
-            zeigeQRStartseite();
-
-            alert("Live-Session gestartet: "+sessionId);
+            starteSessionSetup(); // 🔥 NEU (wichtig)
         });
 
-        return; // 🔥 GANZ WICHTIG → stoppt doppelte Ausführung
+        return;
     }
 
-    // 🔥 FALLBACK (ohne Login)
+    // 🔥 FALL 2: OHNE LOGIN (WICHTIG!)
     sessionId = neueSessionId;
+    starteSessionSetup();
 }
 
+function starteSessionSetup(){
+
+    db.ref("sessions/"+sessionId).set({
+        spiele: spiele,
+        teamA: teamA,
+        teamB: teamB,
+        aktuellesSpiel: aktuellesSpiel,
+        gestarteteSpiele: gestarteteSpiele,
+        status: "spiel",
+        spielZeit: spielZeit,
+        counterGesperrt: false
+    });
+
+    db.ref("sessions/"+sessionId+"/timer").set({
+        start: Date.now(),
+        running: false,
+        value: spielZeit
+    });
+
+    speichern();
+    starteLiveListener();
+    starteTimerListener();
+    zeigeQRStartseite();
+
+    console.log("Session gestartet:", sessionId);
+}
 function starteLiveListener(){
 
     if(!sessionId) return;
@@ -604,7 +603,7 @@ document.body.innerHTML=`
 }
 
 function startSpieltag(){
-
+    console.log("START gedrückt");
     teamA=document.getElementById("teamA").value;
     teamB=document.getElementById("teamB").value;
 
