@@ -21,6 +21,7 @@ let wakeLock = null;
 let keepAliveInterval = null;
 let teamCache = [];
 let userId = null; // 🔥 WICHTIG für Login / Lizenzen
+let liveRef = null; // 🔥 FIX
 
 /* ---------- SESSION ---------- */
 function erstelleSession(){
