@@ -100,7 +100,7 @@ function starteSessionSetup(){
     speichern();
     starteLiveListener();
     starteTimerListener();
-    zeigeQRStartseite();
+    ladeSpiel(); // 🔥 direkt ins Spiel
 
     console.log("Session gestartet:", sessionId);
 }
@@ -603,6 +603,10 @@ document.body.innerHTML=`
 }
 
 function startSpieltag(){
+    if(!userId){
+    alert("Bitte zuerst einloggen");
+    return;
+}
     console.log("START gedrückt");
     teamA=document.getElementById("teamA").value;
     teamB=document.getElementById("teamB").value;
